@@ -1,8 +1,10 @@
 import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
+import {contradictionStatusBadge} from './sanity/badges/contradictionStatus'
 import {apiVersion, dataset, projectId} from './sanity/env'
 import {schemaTypes} from './sanity/schemaTypes'
+import {structure} from './sanity/structure'
 
 /**
  * Studio config. basePath must match the route the Studio is mounted at,
@@ -15,5 +17,9 @@ export default defineConfig({
   projectId,
   dataset,
   schema: {types: schemaTypes},
-  plugins: [structureTool(), visionTool({defaultApiVersion: apiVersion})],
+  plugins: [structureTool({structure}), visionTool({defaultApiVersion: apiVersion})],
+  document: {
+    badges: (prev, context) =>
+      context.schemaType === 'contradiction' ? [...prev, contradictionStatusBadge] : prev,
+  },
 })
