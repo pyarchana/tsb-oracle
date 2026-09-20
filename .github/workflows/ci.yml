@@ -26,6 +26,11 @@ jobs:
 
       - run: npm ci
 
+      # LayoutProps and the other route types are generated, not shipped. A
+      # fresh checkout has no .next, so tsc cannot see them until this runs.
+      - name: Generate route types
+        run: npx next typegen
+
       - name: Typecheck
         run: npx tsc --noEmit
 
