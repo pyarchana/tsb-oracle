@@ -48,11 +48,63 @@ function body(id: string, ...paragraphs: string[]) {
   }))
 }
 
+type Block = ReturnType<typeof body>[number]
+
+interface Ref {
+  _type: 'reference'
+  _ref: string
+}
+
+/**
+ * These mirror sanity/schemaTypes. They are written out rather than inferred
+ * because only one source document carries VIN fields, and inference turns the
+ * rest into a union with vinRangeStart typed as undefined.
+ */
+interface SourceDoc {
+  _id: string
+  _type: 'tsb'
+  tsbNumber: string
+  title: string
+  make: string
+  model: string
+  modelYears: number[]
+  publishDate: string
+  sourceType: 'tsb' | 'recall' | 'manual' | 'forum' | 'nhtsa'
+  status: 'active' | 'superseded' | 'revised'
+  vinRangeStart?: string
+  vinRangeEnd?: string
+  seedDemoData: boolean
+  body: Block[]
+}
+
+interface ClaimDoc {
+  _id: string
+  _type: 'claim'
+  statement: string
+  source: Ref
+  appliesToModels: string[]
+  appliesToYears: number[]
+  confidence: 'verified' | 'reported' | 'disputed'
+  extractedAt: string
+  seedDemoData: boolean
+}
+
+interface ContradictionDoc {
+  _id: string
+  _type: 'contradiction'
+  topic: string
+  claimA: Ref
+  claimB: Ref
+  explanation: string
+  status: 'unresolved' | 'resolved'
+  seedDemoData: boolean
+}
+
 const seedDemoData = true
 
 // ---------------------------------------------------------------- sources
 
-const sources = [
+const sources: SourceDoc[] = [
   {
     _id: 'tsb-owner-manual-cvt',
     _type: 'tsb',
@@ -149,13 +201,13 @@ const sources = [
 
 // ----------------------------------------------------------------- claims
 
-function ref(_ref: string) {
+function ref(_ref: string): Ref {
   return {_type: 'reference', _ref}
 }
 
 const extractedAt = '2026-09-21T00:00:00.000Z'
 
-const claims = [
+const claims: ClaimDoc[] = [
   {
     _id: 'claim-software-resolves',
     _type: 'claim',
@@ -243,7 +295,7 @@ const claims = [
 
 // --------------------------------------------------------- contradictions
 
-const contradictions = [
+const contradictions: ContradictionDoc[] = [
   {
     _id: 'contradiction-shudder-remedy',
     _type: 'contradiction',
@@ -270,7 +322,6 @@ const contradictions = [
 
 // ------------------------------------------------------------------- run
 
-const documents = [...sources, ...claims, ...contradictions]
 
 async function clean() {
   const types = ['tsb', 'claim', 'contradiction', 'decision']
@@ -290,7 +341,14 @@ async function clean() {
 async function seed() {
   // Sources before claims before contradictions, so references resolve in
   // order. One transaction, so a failure leaves nothing half written.
-  const tx = documents.reduce((t, doc) => t.createOrReplace(doc), client.transaction())
+  //
+  // Each array is walked separately rather than concatenated: createOrReplace
+  // is generic over the document it is handed, and a mixed array resolves that
+  // generic against the first element then rejects every other type.
+  const tx = client.transaction()
+  for (const doc of sources) tx.createOrReplace(doc)
+  for (const doc of claims) tx.createOrReplace(doc)
+  for (const doc of contradictions) tx.createOrReplace(doc)
   await tx.commit()
 
   console.log(`Seeded ${sources.length} source documents`)
