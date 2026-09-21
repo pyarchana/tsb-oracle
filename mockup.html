@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TSB Oracle</title>
+<style>
+  :root {
+    --bg:          #0f1115;
+    --bg-raised:   #13161b;
+    --hairline:    rgba(255,255,255,0.07);
+    --hairline-hi: rgba(255,255,255,0.12);
+    --text:        #e3e6ea;
+    --text-dim:    #8a9199;
+    --text-faint:  #5c636b;
+    --accent:      #3fb950;
+    --accent-dim:  rgba(63,185,80,0.14);
+    --amber:       #d29922;
+    --amber-dim:   rgba(210,153,34,0.13);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, Segoe UI, Inter, Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tiny uppercase metadata label, used for every section heading. */
+  .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 336px;
+    grid-template-rows: auto minmax(0,1fr);
+    height: 100vh;
+  }
+
+  /* ---------- header ---------- */
+
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 20px;
+    height: 52px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .wordmark {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .wordmark b { color: var(--text); font-weight: 600; }
+
+  /* Vehicle selector. Reads as a command input, not a form. */
+  .vehicle {
+    flex: 1;
+    max-width: 560px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 10px;
+    background: var(--bg-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    cursor: text;
+  }
+  .vehicle:focus-within { border-color: var(--hairline-hi); }
+
+  .caret {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .token {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .token .k { color: var(--text-faint); }
+
+  .ghost {
+    font-size: 13px;
+    color: var(--text-faint);
+    flex: 1;
+  }
+
+  .kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 1px 5px;
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* ---------- conversation ---------- */
+
+  .thread {
+    overflow-y: auto;
+    padding: 28px 40px 0;
+  }
+
+  .turn { max-width: 720px; margin: 0 auto 36px; }
+
+  .asked {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .asked .label { flex-shrink: 0; padding-top: 2px; }
+  .asked p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+
+  .answer p { margin: 0 0 14px; }
+
+  /* Inline citation. The accent appears here and on resolved state, nowhere else. */
+  .cite {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 3px;
+    white-space: nowrap;
+    cursor: pointer;
+    vertical-align: 1px;
+  }
+  .cite:hover { background: rgba(63,185,80,0.24); }
+
+  /* ---------- contradiction block ---------- */
+
+  .conflict {
+    margin-top: 24px;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    background: var(--bg-raised);
+  }
+
+  .conflict-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill.unresolved { color: var(--amber);  background: var(--amber-dim);  border: 1px solid rgba(210,153,34,0.3); }
+  .pill.resolved   { color: var(--accent); background: var(--accent-dim); border: 1px solid rgba(63,185,80,0.32); }
+
+  .claims {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+  }
+  .claim { padding: 16px; }
+  .claim-rule { background: var(--hairline); }
+
+  .claim .src {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 9px;
+  }
+  .claim .src .date { color: var(--text-faint); }
+  .claim .statement { margin: 0; font-size: 14px; line-height: 1.55; }
+
+  .why {
+    padding: 14px 16px;
+    border-top: 1px solid var(--hairline);
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .why strong { color: var(--text); font-weight: 500; }
+  .why .vin { font-family: var(--mono); font-size: 12px; color: var(--text); }
+
+  .ask {
+    padding: 13px 16px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 13.5px;
+  }
+  .choice {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+    border: 1px solid var(--hairline-hi);
+    border-radius: 5px;
+    padding: 4px 10px;
+    cursor: pointer;
+    background: transparent;
+  }
+  .choice:hover { border-color: rgba(63,185,80,0.4); color: var(--accent); }
+
+  /* ---------- composer ---------- */
+
+  .composer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 12px 0 24px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 72%, transparent);
+  }
+  .composer-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    background: var(--bg-raised);
+  }
+
+  /* ---------- right rail ---------- */
+
+  aside {
+    border-left: 1px solid var(--hairline);
+    overflow-y: auto;
+    padding: 20px 18px;
+  }
+
+  .rail-section + .rail-section { margin-top: 30px; }
+
+  .rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .count { font-family: var(--mono); font-size: 10px; color: var(--text-faint); }
+
+  .source {
+    padding: 10px 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .source:last-child { border-bottom: 1px solid var(--hairline); }
+
+  .source-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+  .source.cited .dot { background: var(--accent); }
+  .source .id {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+  }
+  .source .kind {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-left: auto;
+  }
+  .source .title {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.45;
+    padding-left: 12px;
+  }
+  .source .meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    padding-left: 12px;
+    margin-top: 3px;
+  }
+
+  .conflict-row {
+    border-top: 1px solid var(--hairline);
+    padding: 11px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .conflict-row:last-child { border-bottom: 1px solid var(--hairline); }
+  .conflict-row .topic { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr) auto; }
+    aside { border-left: 0; border-top: 1px solid var(--hairline); }
+    .thread { padding: 20px 16px 0; }
+    .claims { grid-template-columns: 1fr; }
+    .claim-rule { height: 1px; }
+    header { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="wordmark"><b>TSB</b> Oracle</div>
+    <div class="vehicle">
+      <span class="caret">&rsaquo;</span>
+      <span class="token"><span class="k">Year</span> 2021</span>
+      <span class="token"><span class="k">Make</span> Honda</span>
+      <span class="token"><span class="k">Model</span> CR-V</span>
+      <span class="token"><span class="k">VIN</span> 2HKRW2H8&hellip;</span>
+      <span class="ghost">add or change</span>
+      <span class="kbd">&#8984;K</span>
+    </div>
+  </header>
+
+  <main class="thread">
+
+    <div class="turn">
+      <div class="asked">
+        <span class="label">Asked</span>
+        <p>What is the fix for the CVT shudder on a 2021 CR-V?</p>
+      </div>
+
+      <div class="answer">
+        <p>There are two manufacturer remedies on file for this symptom and they
+        do not agree with each other. Which one applies to your car depends on
+        when it was built.</p>
+
+        <p>The earlier bulletin prescribes a CVT control software update and
+        authorizes no hardware work.<span class="cite">20-042</span> The later
+        one supersedes it and calls for torque converter replacement on vehicles
+        built before June 2021, keeping the software remedy for anything
+        newer.<span class="cite">22-018</span> Owner reports also describe the
+        software update failing to hold on 2019 and 2020
+        cars.<span class="cite">forum</span></p>
+
+        <div class="conflict">
+          <div class="conflict-head">
+            <span class="label">Contradiction</span>
+            <span class="pill unresolved">Unresolved</span>
+          </div>
+
+          <div class="claims">
+            <div class="claim">
+              <div class="src">
+                <span>TSB 20-042</span>
+                <span class="date">2020-03-11</span>
+              </div>
+              <p class="statement">A CVT control software update resolves the
+              shudder. No hardware replacement is authorized.</p>
+            </div>
+
+            <div class="claim-rule"></div>
+
+            <div class="claim">
+              <div class="src">
+                <span>TSB 22-018</span>
+                <span class="date">2022-06-02</span>
+              </div>
+              <p class="statement">The software update did not resolve it. The
+              torque converter must be replaced below the VIN cutoff.</p>
+            </div>
+          </div>
+
+          <div class="why">
+            <strong>Why these conflict.</strong> 22-018 supersedes 20-042 and
+            splits the remedy on a build date. Vehicles built before
+            <span class="vin">June 2021</span> move to hardware replacement;
+            later ones stay on software. A 2021 CR-V can fall on either side.
+          </div>
+
+          <div class="ask">
+            <span>Was yours built before June 2021?</span>
+            <button class="choice">Before</button>
+            <button class="choice">On or after</button>
+            <button class="choice">Check my VIN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <span class="caret">&rsaquo;</span>
+        <span class="ghost">Ask about this vehicle</span>
+        <span class="kbd">/</span>
+      </div>
+    </div>
+
+  </main>
+
+  <aside>
+    <div class="rail-section">
+      <div class="rail-head">
+        <span class="label">Sources</span>
+        <span class="count">4 retrieved &middot; 3 cited</span>
+      </div>
+
+      <div class="source cited">
+        <div class="source-top">
+          <span class="dot"></span><span class="id">TSB 20-042</span>
+          <span class="kind">bulletin</span>
+        </div>
+        <div class="title">CVT judder during light acceleration</div>
+        <div class="meta">2020-03-11 &middot; superseded</div>
+      </div>
+
+      <div class="source cited">
+        <div class="source-top">
+          <span class="dot"></span><span class="id">TSB 22-018</span>
+          <span class="kind">bulletin</span>
+        </div>
+        <div class="title">CVT judder, revised repair</div>
+        <div class="meta">2022-06-02 &middot; active</div>
+      </div>
+
+      <div class="source cited">
+        <div class="source-top">
+          <span class="dot"></span><span class="id">forum</span>
+          <span class="kind">owner</span>
+        </div>
+        <div class="title">Software update outcomes, 2019 to 2020</div>
+        <div class="meta">reported &middot; uncorroborated</div>
+      </div>
+
+      <div class="source">
+        <div class="source-top">
+          <span class="dot"></span><span class="id">NHTSA</span>
+          <span class="kind">recall</span>
+        </div>
+        <div class="title">Powertrain campaign record</div>
+        <div class="meta">not cited in this answer</div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="rail-head">
+        <span class="label">Contradictions</span>
+        <span class="count">1 open</span>
+      </div>
+
+      <div class="conflict-row">
+        <span class="topic">CR-V CVT shudder remedy</span>
+        <span class="pill unresolved">Unresolved</span>
+      </div>
+
+      <div class="conflict-row">
+        <span class="topic">Software update effectiveness</span>
+        <span class="pill resolved">Resolved</span>
+      </div>
+    </div>
+  </aside>
+
+</div>
+</body>
+</html>
