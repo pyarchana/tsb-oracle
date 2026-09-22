@@ -3,6 +3,7 @@ import {convertToModelMessages, isStepCount, streamText, type UIMessage} from 'a
 import {resolveContextProvider} from '@/lib/context-mcp'
 import {buildSystemMessages, type Vehicle} from './systemPrompt'
 import {checkApplicability} from './tools/checkApplicability'
+import {recordDecision} from './tools/recordDecision'
 
 export const MODEL_ID = 'claude-sonnet-5'
 
@@ -30,6 +31,7 @@ export async function runAgent({messages, vehicle}: RunAgentInput) {
   const tools = {
     ...(await context.tools()),
     check_applicability: checkApplicability,
+    record_decision: recordDecision,
   }
 
   return streamText({
