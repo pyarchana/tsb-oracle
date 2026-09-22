@@ -1,3 +1,5 @@
+import type {SystemModelMessage} from 'ai'
+
 /**
  * The agent's standing instructions.
  *
@@ -33,15 +35,28 @@ export interface Vehicle {
 }
 
 /**
- * The instructions stay byte-identical across requests and the vehicle goes
- * after them, so the stable part can be cached as a prefix.
+ * Two system messages rather than one string, so the cache breakpoint can sit
+ * between them. The instructions stay byte-identical across requests and
+ * Anthropic reads tools before the system prompt, so one breakpoint caches the
+ * tool definitions and the instructions together. The vehicle changes per
+ * request and goes after it, uncached.
  */
-export function buildSystemPrompt(vehicle?: Vehicle): string {
+export function buildSystemMessages(vehicle?: Vehicle): SystemModelMessage[] {
+  const messages: SystemModelMessage[] = [
+    {
+      role: 'system',
+      content: INSTRUCTIONS,
+      providerOptions: {anthropic: {cacheControl: {type: 'ephemeral'}}},
+    },
+  ]
   const described = describeVehicle(vehicle)
-  if (!described) {
-    return INSTRUCTIONS
+  if (described) {
+    messages.push({
+      role: 'system',
+      content: `The user is asking about this vehicle unless they say otherwise: ${described}.`,
+    })
   }
-  return `${INSTRUCTIONS}\n\nThe user is asking about this vehicle unless they say otherwise: ${described}.`
+  return messages
 }
 
 function describeVehicle(vehicle?: Vehicle): string | null {
