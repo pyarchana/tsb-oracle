@@ -53,12 +53,6 @@ export const decision = defineType({
       type: 'datetime',
       validation: (rule) => rule.required(),
     }),
-    defineField({
-      name: 'seedDemoData',
-      title: 'Seed demo data',
-      type: 'boolean',
-      initialValue: false,
-    }),
   ],
   preview: {
     select: {topic: 'contradiction.topic', by: 'resolvedBy', at: 'resolvedAt'},

@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {managedByField} from './managedBy'
 
 /**
  * One atomic statement pulled out of a source document.
@@ -27,6 +28,13 @@ export const claim = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'quote',
+      type: 'text',
+      rows: 2,
+      description:
+        'The exact words in the source this claim rests on, kept short. The statement is a paraphrase; this is what lets someone check it.',
+    }),
+    defineField({
       name: 'appliesToModels',
       title: 'Applies to models',
       type: 'array',
@@ -50,17 +58,12 @@ export const claim = defineType({
         layout: 'radio',
       },
       description:
-        'Verified is a manufacturer statement. Reported is owner testimony. Disputed is contradicted elsewhere.',
+        'Verified is an official statement from the manufacturer or NHTSA. Reported is owner testimony. Disputed is contradicted elsewhere.',
       initialValue: 'verified',
       validation: (rule) => rule.required(),
     }),
     defineField({name: 'extractedAt', title: 'Extracted at', type: 'datetime'}),
-    defineField({
-      name: 'seedDemoData',
-      title: 'Seed demo data',
-      type: 'boolean',
-      initialValue: false,
-    }),
+    managedByField,
   ],
   preview: {
     select: {statement: 'statement', confidence: 'confidence', source: 'source.tsbNumber'},

@@ -1,12 +1,14 @@
 import {defineField, defineType} from 'sanity'
+import {managedByField} from './managedBy'
 
 /**
- * Two claims that cannot both be true for the same vehicle.
+ * Two claims about the same vehicle that lead a reader to different answers.
  *
  * The explanation matters as much as the pair. A user asking about their own
- * car is not helped by being told two sources disagree; they need to know the
- * disagreement is a VIN cutoff, or a supersession, or a model year split, so
- * they can work out which side they fall on.
+ * car is not helped by being told two sources disagree; they need to know why.
+ * A later bulletin revised an earlier one, a remedy stops at a model year or a
+ * trim, or the manufacturer's account changed over time. Knowing which, they
+ * can work out which side they fall on.
  */
 export const contradiction = defineType({
   name: 'contradiction',
@@ -16,7 +18,7 @@ export const contradiction = defineType({
     defineField({
       name: 'topic',
       type: 'string',
-      description: 'Short human label, for example "CR-V transmission shudder fix".',
+      description: 'Short human label, for example "Cause of unexpected CMBS braking".',
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -38,7 +40,7 @@ export const contradiction = defineType({
       type: 'text',
       rows: 4,
       description:
-        'Why these conflict: supersession, VIN range, model year split. Not that they conflict, but why.',
+        'Why these conflict: a revision, a model year or trim cutoff, a changed account. Not that they conflict, but why.',
       validation: (rule) => rule.required(),
     }),
     defineField({
@@ -54,12 +56,7 @@ export const contradiction = defineType({
       initialValue: 'unresolved',
       validation: (rule) => rule.required(),
     }),
-    defineField({
-      name: 'seedDemoData',
-      title: 'Seed demo data',
-      type: 'boolean',
-      initialValue: false,
-    }),
+    managedByField,
   ],
   preview: {
     select: {topic: 'topic', status: 'status', a: 'claimA.source.tsbNumber', b: 'claimB.source.tsbNumber'},
