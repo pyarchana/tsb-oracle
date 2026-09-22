@@ -12,6 +12,12 @@ so it persists for later queries.
 Demo dataset covers one vehicle: 2017 to 2022 Honda CR-V, CVT transmission
 shudder.
 
+**The demo data is fictional.** The bulletins, bulletin numbers, dates, VIN
+ranges and owner reports in `scripts/seed.ts` were written for this demo. They
+do not describe real Honda service bulletins or NHTSA campaigns, and any match
+with a real number is coincidence. Do not use them to make repair decisions.
+Every seeded document carries `seedDemoData: true` in the dataset.
+
 ## Stack
 
 - Next.js 16 (App Router), TypeScript, Tailwind 4
