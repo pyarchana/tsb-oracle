@@ -1,12 +1,6 @@
 import {tool} from 'ai'
 import {z} from 'zod'
-import {sanityFreshClient} from '@/lib/sanity/client'
-import {
-  CONTRADICTIONS_FOR_SOURCES,
-  SOURCES_FOR_VEHICLE,
-  type ContradictionRow,
-  type SourceRow,
-} from '@/lib/sanity/queries'
+import {lookupVehicle} from '@/lib/sanity/lookup'
 
 type VinStatus = 'in-range' | 'out-of-range' | 'no-range' | 'vin-not-given' | 'invalid-vin'
 type TrimStatus = 'excluded' | 'not-excluded' | 'no-exclusions' | 'trim-not-given'
@@ -72,18 +66,7 @@ export const checkApplicability = tool({
     vin: z.string().optional().describe('17 character VIN, when the user has given one'),
   }),
   execute: async ({year, make, model, trim, vin}) => {
-    const sources = await sanityFreshClient.fetch<SourceRow[]>(SOURCES_FOR_VEHICLE, {
-      year: year ?? null,
-      make: make ?? null,
-      model: model ?? null,
-    })
-
-    const contradictions =
-      sources.length === 0
-        ? []
-        : await sanityFreshClient.fetch<ContradictionRow[]>(CONTRADICTIONS_FOR_SOURCES, {
-            tsbNumbers: sources.map((s) => s.tsbNumber),
-          })
+    const {sources, contradictions} = await lookupVehicle({year, make, model})
 
     return {
       vehicle: {year, make, model, trim, vin},

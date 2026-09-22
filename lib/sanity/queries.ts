@@ -8,22 +8,49 @@ import {defineQuery} from 'next-sanity'
  * Vehicle fields are optional, so each is passed as a parameter that may be
  * null, and a null parameter matches everything rather than nothing.
  */
+const SOURCE_PROJECTION = `{
+  tsbNumber,
+  manufacturerNumber,
+  title,
+  sourceType,
+  status,
+  publishDate,
+  sourceUrl,
+  excludedTrims,
+  vinRangeStart,
+  vinRangeEnd
+}`
+
 export const SOURCES_FOR_VEHICLE = defineQuery(`
   *[_type == "tsb"
     && ($make == null || lower(make) == lower($make))
     && ($model == null || lower(model) == lower($model))
     && ($year == null || $year in modelYears)
-  ] | order(publishDate asc) {
+  ] | order(publishDate asc) ${SOURCE_PROJECTION}
+`)
+
+/**
+ * Sources by NHTSA id, whatever vehicle they cover. The sources panel needs
+ * these for documents the vehicle query leaves out but the conversation still
+ * brings up: the other side of a contradiction, or a bulletin the agent cited
+ * because it stops short of the user's model year.
+ */
+export const SOURCES_BY_NUMBER = defineQuery(`
+  *[_type == "tsb" && tsbNumber in $numbers] | order(publishDate asc) ${SOURCE_PROJECTION}
+`)
+
+/**
+ * What each document says, as the dataset holds it: its body, plus the
+ * verbatim quotes its claims were extracted with. Quotes in an answer are
+ * checked against this, the document itself, rather than against the
+ * Knowledge Base's synthesis of it.
+ */
+export const SOURCE_TEXTS = defineQuery(`
+  *[_type == "tsb" && tsbNumber in $numbers] {
     tsbNumber,
-    manufacturerNumber,
     title,
-    sourceType,
-    status,
-    publishDate,
-    sourceUrl,
-    excludedTrims,
-    vinRangeStart,
-    vinRangeEnd
+    "body": pt::text(body),
+    "quotes": *[_type == "claim" && source._ref == ^._id && defined(quote)].quote
   }
 `)
 
@@ -79,7 +106,7 @@ export const CONTRADICTIONS_FOR_SOURCES = defineQuery(`
 
 /*
  * Result shapes, written by hand. Sanity TypeGen could generate these, but for
- * two queries a generated file and the build step to keep it current cost more
+ * four queries a generated file and the build step to keep it current cost more
  * than they save. Each mirrors the projection above it exactly.
  */
 
@@ -101,6 +128,13 @@ export interface SourceRow {
   excludedTrims: string[] | null
   vinRangeStart: string | null
   vinRangeEnd: string | null
+}
+
+export interface SourceTextRow {
+  tsbNumber: string
+  title: string
+  body: string | null
+  quotes: string[]
 }
 
 export interface ClaimRow {
