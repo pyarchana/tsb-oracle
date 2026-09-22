@@ -2,18 +2,24 @@ import {createClient} from '@sanity/client'
 import {loadEnvConfig} from '@next/env'
 
 /**
- * Seeds the demo dataset: one vehicle, one symptom, and the disagreements
- * between the documents that describe it.
+ * The curated layer on top of the NHTSA import: what the documents claim, and
+ * where those claims pull against each other.
  *
- * Every document carries seedDemoData so it can be found and cleared. Ids are
- * fixed rather than generated, and writes use createOrReplace, so running this
- * twice produces the same dataset instead of a second copy of it.
+ * scripts/import-nhtsa.ts brings in the records as NHTSA publishes them. This
+ * adds what reading them takes: which bulletin version is current, which trim
+ * a bulletin leaves out, and the claims and contradictions the agent reasons
+ * over. Every claim quotes the words it rests on, and the quotes come from the
+ * documents linked on each source, including the full bulletin PDFs where the
+ * NHTSA summary stops short.
  *
+ *   npm run import:nhtsa    first, so there is something to annotate
  *   npm run seed
- *   npm run seed -- --clean    removes every seeded document
+ *   npm run seed -- --clean    removes the claims and contradictions
  *
- * This builds its own client rather than importing lib/sanity/writeClient,
- * which imports server-only and throws outside a React Server Component.
+ * Ids are fixed and writes replace, so running this twice gives the same
+ * dataset rather than a second copy. It builds its own client rather than
+ * importing lib/sanity/writeClient, which imports server-only and throws
+ * outside a React Server Component.
  */
 
 loadEnvConfig(process.cwd())
@@ -37,56 +43,35 @@ const client = createClient({
   useCdn: false,
 })
 
-/** Portable Text needs a stable _key on every block and span. */
-function body(id: string, ...paragraphs: string[]) {
-  return paragraphs.map((text, i) => ({
-    _type: 'block',
-    _key: `${id}-b${i}`,
-    style: 'normal',
-    markDefs: [],
-    children: [{_type: 'span', _key: `${id}-b${i}-s`, text, marks: []}],
-  }))
-}
-
-type Block = ReturnType<typeof body>[number]
-
 interface Ref {
   _type: 'reference'
   _ref: string
 }
 
-/**
- * These mirror sanity/schemaTypes. They are written out rather than inferred
- * because only one source document carries VIN fields, and inference turns the
- * rest into a union with vinRangeStart typed as undefined.
- */
-interface SourceDoc {
+function ref(_ref: string): Ref {
+  return {_type: 'reference', _ref}
+}
+
+interface Overlay {
   _id: string
-  _type: 'tsb'
-  tsbNumber: string
-  title: string
-  make: string
-  model: string
-  modelYears: number[]
-  publishDate: string
-  sourceType: 'tsb' | 'recall' | 'manual' | 'forum' | 'nhtsa'
-  status: 'active' | 'superseded' | 'revised'
-  vinRangeStart?: string
-  vinRangeEnd?: string
-  seedDemoData: boolean
-  body: Block[]
+  set: {
+    title?: string
+    status?: 'active' | 'superseded' | 'revised'
+    excludedTrims?: string[]
+  }
 }
 
 interface ClaimDoc {
   _id: string
   _type: 'claim'
   statement: string
+  quote: string
   source: Ref
   appliesToModels: string[]
   appliesToYears: number[]
   confidence: 'verified' | 'reported' | 'disputed'
   extractedAt: string
-  seedDemoData: boolean
+  managedBy: 'seed'
 }
 
 interface ContradictionDoc {
@@ -97,199 +82,205 @@ interface ContradictionDoc {
   claimB: Ref
   explanation: string
   status: 'unresolved' | 'resolved'
-  seedDemoData: boolean
+  managedBy: 'seed'
 }
 
-const seedDemoData = true
+const managedBy = 'seed'
 
-// ---------------------------------------------------------------- sources
+// Document ids written by the import, named here once.
+const V1 = 'nhtsa-mc-11035885'
+const V2 = 'nhtsa-mc-11035781'
+const OWNER_LETTER = 'nhtsa-mc-11037300'
+const DEALER_SEARCH_2021 = 'nhtsa-mc-10189042'
+const PE = 'nhtsa-inv-PE22003'
+const EA = 'nhtsa-inv-EA24002'
+const COMPLAINT_2017 = 'nhtsa-cmp-11561420'
+const COMPLAINT_2021 = 'nhtsa-cmp-11679500'
 
-const sources: SourceDoc[] = [
+// --------------------------------------------------------------- overlays
+
+/**
+ * NHTSA lists both versions of 26-091 as separate, equally current records.
+ * Only the bulletin itself says version 2 supersedes version 1, and only its
+ * applies-to table says the LX is left out, so both facts are added here.
+ */
+const overlays: Overlay[] = [
   {
-    _id: 'tsb-owner-manual-cvt',
-    _type: 'tsb',
-    tsbNumber: 'OM-CRV-2021',
-    title: 'Owner manual: continuously variable transmission operation',
-    make: 'Honda',
-    model: 'CR-V',
-    modelYears: [2017, 2018, 2019, 2020, 2021, 2022],
-    publishDate: '2021-01-04',
-    sourceType: 'manual',
-    status: 'active',
-    seedDemoData,
-    body: body(
-      'om',
-      'The continuously variable transmission adjusts ratio continuously rather than shifting between fixed gears. Some variation in engine note during acceleration is a normal characteristic of this design.',
-      'A pronounced shudder or vibration under light throttle is not normal operation and should be inspected by a dealer.',
-    ),
+    _id: V1,
+    set: {
+      title: 'Service Bulletin 26-091, version 1: CMBS software update',
+      status: 'superseded',
+      excludedTrims: ['LX'],
+    },
   },
   {
-    _id: 'tsb-20-042',
-    _type: 'tsb',
-    tsbNumber: '20-042',
-    title: 'CVT judder during light acceleration',
-    make: 'Honda',
-    model: 'CR-V',
-    modelYears: [2017, 2018, 2019, 2020],
-    publishDate: '2020-03-11',
-    sourceType: 'tsb',
-    status: 'superseded',
-    seedDemoData,
-    body: body(
-      't20',
-      'Customers report a shudder between 25 and 40 mph under light throttle. The cause is CVT clutch slip under low line pressure.',
-      'The prescribed repair is a CVT control software update. No hardware replacement is authorized under this bulletin.',
-    ),
+    _id: V2,
+    set: {
+      title: 'Service Bulletin 26-091, version 2: Honda Sensing software update',
+      status: 'active',
+      excludedTrims: ['LX'],
+    },
   },
   {
-    _id: 'tsb-22-018',
-    _type: 'tsb',
-    tsbNumber: '22-018',
-    title: 'CVT judder, revised repair procedure',
-    make: 'Honda',
-    model: 'CR-V',
-    modelYears: [2017, 2018, 2019, 2020, 2021, 2022],
-    publishDate: '2022-06-02',
-    sourceType: 'tsb',
-    status: 'active',
-    vinRangeStart: '2HKRW2H80MH000001',
-    vinRangeEnd: '2HKRW2H89MH599999',
-    seedDemoData,
-    body: body(
-      't22',
-      'This bulletin supersedes TSB 20-042.',
-      'The software update in TSB 20-042 did not resolve the condition on vehicles built before June 2021. For those vehicles the torque converter assembly must be replaced.',
-      'Vehicles built on or after June 2021 remain on the software remedy described in the superseded bulletin.',
-    ),
+    _id: OWNER_LETTER,
+    set: {title: 'Owner letter for Service Bulletin 26-091: free Honda Sensing software update'},
   },
   {
-    _id: 'tsb-nhtsa-21v812',
-    _type: 'tsb',
-    tsbNumber: '21V-812',
-    title: 'NHTSA campaign: powertrain inspection and repair',
-    make: 'Honda',
-    model: 'CR-V',
-    modelYears: [2017, 2018, 2019, 2020, 2021],
-    publishDate: '2021-11-18',
-    sourceType: 'nhtsa',
-    status: 'active',
-    seedDemoData,
-    body: body(
-      'nhtsa',
-      'A powertrain campaign covering certain CR-V model years is on file. The campaign covers inspection and, where the condition is confirmed, repair under warranty.',
-    ),
-  },
-  {
-    _id: 'tsb-forum-cvt-thread',
-    _type: 'tsb',
-    tsbNumber: 'FORUM-CVT-001',
-    title: 'Owner thread: software update outcomes',
-    make: 'Honda',
-    model: 'CR-V',
-    modelYears: [2019, 2020],
-    publishDate: '2021-08-22',
-    sourceType: 'forum',
-    status: 'active',
-    seedDemoData,
-    body: body(
-      'forum',
-      'Multiple owners of 2019 and 2020 CR-V report that the CVT software update was applied by a dealer and the shudder returned within a few hundred miles.',
-      'This is uncorroborated owner testimony rather than a manufacturer finding. It is kept because it conflicts with the remedy prescribed in TSB 20-042.',
-    ),
+    _id: DEALER_SEARCH_2021,
+    set: {title: 'Dealer message: Honda asks dealers to find CR-Vs with unexpected CMBS braking'},
   },
 ]
 
 // ----------------------------------------------------------------- claims
 
-function ref(_ref: string): Ref {
-  return {_type: 'reference', _ref}
-}
-
-const extractedAt = '2026-09-21T00:00:00.000Z'
+const extractedAt = '2026-09-22T00:00:00.000Z'
+const CRV = ['CR-V']
+const UPDATE_YEARS = [2017, 2018, 2019]
 
 const claims: ClaimDoc[] = [
   {
-    _id: 'claim-software-resolves',
+    _id: 'claim-update-scope',
     _type: 'claim',
     statement:
-      'A CVT control software update resolves the shudder on 2017 to 2020 CR-V.',
-    source: ref('tsb-20-042'),
-    appliesToModels: ['CR-V'],
-    appliesToYears: [2017, 2018, 2019, 2020],
+      'Service Bulletin 26-091 applies to 2017 to 2019 CR-V in every trim except the LX. It publishes no VIN range: a dealer confirms each car with a VIN status check.',
+    quote: 'Do an iN VIN status inquiry to make sure the vehicle is shown as eligible.',
+    source: ref(V2),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
     confidence: 'verified',
     extractedAt,
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'claim-no-hardware-authorized',
+    _id: 'claim-update-remedy',
     _type: 'claim',
-    statement: 'No hardware replacement is authorized for this condition.',
-    source: ref('tsb-20-042'),
-    appliesToModels: ['CR-V'],
-    appliesToYears: [2017, 2018, 2019, 2020],
+    statement: 'The repair is a software update to the adaptive cruise control and CMBS.',
+    quote: 'Update the ACC / CMBS to the most current software version.',
+    source: ref(V2),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
     confidence: 'verified',
     extractedAt,
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'claim-hardware-required-pre-june-2021',
+    _id: 'claim-update-free',
     _type: 'claim',
-    statement:
-      'Vehicles built before June 2021 require torque converter replacement. The software update alone does not resolve the condition on them.',
-    source: ref('tsb-22-018'),
-    appliesToModels: ['CR-V'],
-    appliesToYears: [2017, 2018, 2019, 2020, 2021],
+    statement: 'Owners are told the update is free at any Honda dealer and takes about 20 minutes.',
+    quote: 'the total software update process may take approximately 20 minutes',
+    source: ref(OWNER_LETTER),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
     confidence: 'verified',
     extractedAt,
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'claim-software-remains-post-june-2021',
-    _type: 'claim',
-    statement:
-      'Vehicles built on or after June 2021 remain on the software remedy.',
-    source: ref('tsb-22-018'),
-    appliesToModels: ['CR-V'],
-    appliesToYears: [2021, 2022],
-    confidence: 'verified',
-    extractedAt,
-    seedDemoData,
-  },
-  {
-    _id: 'claim-owners-report-software-failed',
+    _id: 'claim-v1-software-cause',
     _type: 'claim',
     statement:
-      'The software update did not resolve the shudder. It returned within a few hundred miles.',
-    source: ref('tsb-forum-cvt-thread'),
-    appliesToModels: ['CR-V'],
-    appliesToYears: [2019, 2020],
+      'Version 1 of the bulletin says software programming issues in the driver assistance system can cause unexpected deceleration.',
+    quote:
+      'Due to software programming issues of the Advanced Driver Assistance System (ADAS), unexpected vehicle deceleration may occur.',
+    source: ref(V1),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
+    confidence: 'verified',
+    extractedAt,
+    managedBy,
+  },
+  {
+    _id: 'claim-v2-purpose',
+    _type: 'claim',
+    statement:
+      'Version 2 supersedes version 1 and describes the update as changing when and how hard the driver assistance system slows the car, to enhance the driver experience.',
+    quote:
+      'to enhance driver experience by modifying the circumstances when the advanced driver assist system (ADAS) decelerates the vehicle or the extent of deceleration',
+    source: ref(V2),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
+    confidence: 'verified',
+    extractedAt,
+    managedBy,
+  },
+  {
+    _id: 'claim-honda-customer-understanding',
+    _type: 'claim',
+    statement:
+      "During NHTSA's investigation, Honda's analysis suggested some customers did not fully understand the CMBS and its limits.",
+    quote: 'some customers possibly had an inadequate understanding of the CMBS and its limitations',
+    source: ref(PE),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
+    confidence: 'verified',
+    extractedAt,
+    managedBy,
+  },
+  {
+    _id: 'claim-dealers-called-it-normal',
+    _type: 'claim',
+    statement:
+      'Many owners complain that dealers could not reproduce the braking, or told them it was normal CMBS operation.',
+    quote:
+      'Honda dealerships were unable to reproduce the condition or state that they were informed that this is considered normal CMBS operation',
+    source: ref(PE),
+    appliesToModels: CRV,
+    appliesToYears: UPDATE_YEARS,
     confidence: 'reported',
     extractedAt,
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'claim-some-vibration-normal',
+    _id: 'claim-investigation-scope',
     _type: 'claim',
     statement:
-      'Some variation in engine note during acceleration is normal for a CVT, but a pronounced shudder under light throttle is not.',
-    source: ref('tsb-owner-manual-cvt'),
-    appliesToModels: ['CR-V'],
+      'NHTSA upgraded its investigation to engineering analysis EA24-002 in April 2024 and widened it to 2020 to 2022 CR-V. It has not closed.',
+    quote: 'The scope has been expanded to include assessment of model year 2020-2022 Honda CR-V and Accord vehicles.',
+    source: ref(EA),
+    appliesToModels: CRV,
     appliesToYears: [2017, 2018, 2019, 2020, 2021, 2022],
     confidence: 'verified',
     extractedAt,
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'claim-campaign-covers-repair',
+    _id: 'claim-honda-searching-for-cause',
     _type: 'claim',
     statement:
-      'A powertrain campaign covers inspection and, where confirmed, repair under warranty.',
-    source: ref('tsb-nhtsa-21v812'),
-    appliesToModels: ['CR-V'],
+      'Through 2021 Honda was asking dealers to find 2017 to 2021 CR-Vs with unexpected CMBS braking so it could work out the cause.',
+    quote: 'To better understand the cause of this condition, AHM would like to collect specific information from the vehicle',
+    source: ref(DEALER_SEARCH_2021),
+    appliesToModels: CRV,
     appliesToYears: [2017, 2018, 2019, 2020, 2021],
     confidence: 'verified',
     extractedAt,
-    seedDemoData,
+    managedBy,
+  },
+  {
+    _id: 'claim-owner-2017-not-replicated',
+    _type: 'claim',
+    statement:
+      'The owner of a 2017 CR-V reports the car braked to a stop with nothing ahead, and the dealer could not replicate it.',
+    quote: 'Took it to the dealer the following day and they could not replicate the incident.',
+    source: ref(COMPLAINT_2017),
+    appliesToModels: CRV,
+    appliesToYears: [2017],
+    confidence: 'reported',
+    extractedAt,
+    managedBy,
+  },
+  {
+    _id: 'claim-owner-2021-told-normal',
+    _type: 'claim',
+    statement:
+      'The owner of a 2021 CR-V reports the automatic emergency braking engaged three or four times on the freeway with nothing ahead, and the dealer called it normal.',
+    quote: 'they told me it is normal and I should just be a good driver',
+    source: ref(COMPLAINT_2021),
+    appliesToModels: CRV,
+    appliesToYears: [2021],
+    confidence: 'reported',
+    extractedAt,
+    managedBy,
   },
 ]
 
@@ -297,61 +288,76 @@ const claims: ClaimDoc[] = [
 
 const contradictions: ContradictionDoc[] = [
   {
-    _id: 'contradiction-shudder-remedy',
+    _id: 'contradiction-braking-cause',
     _type: 'contradiction',
-    topic: 'CR-V CVT shudder remedy',
-    claimA: ref('claim-software-resolves'),
-    claimB: ref('claim-hardware-required-pre-june-2021'),
+    topic: 'Cause of unexpected CMBS braking',
+    claimA: ref('claim-honda-customer-understanding'),
+    claimB: ref('claim-v1-software-cause'),
     explanation:
-      'TSB 22-018 supersedes 20-042 and splits the remedy on a build date. Vehicles built before June 2021 move to torque converter replacement; later ones stay on the software update. A 2021 CR-V can fall on either side of that cutoff, so the model year alone does not settle it.',
+      "While NHTSA investigated, Honda pointed to customers misunderstanding the system, and owners say dealers called the braking normal. In July 2026 Honda's own bulletin named software programming issues as the cause of unexpected deceleration. For a 2017 to 2019 CR-V the practical answer is the same either way, since the update exists and is free, but anyone told the braking was normal has Honda's later words against that.",
     status: 'unresolved',
-    seedDemoData,
+    managedBy,
   },
   {
-    _id: 'contradiction-software-effectiveness',
+    _id: 'contradiction-bulletin-wording',
     _type: 'contradiction',
-    topic: 'Software update effectiveness',
-    claimA: ref('claim-software-resolves'),
-    claimB: ref('claim-owners-report-software-failed'),
+    topic: 'How Honda describes the 26-091 update',
+    claimA: ref('claim-v1-software-cause'),
+    claimB: ref('claim-v2-purpose'),
     explanation:
-      'The manufacturer states the software update resolves the condition. Owners of the same model years report it did not hold. One is a verified manufacturer position and the other is uncorroborated testimony, so they carry different weight, but the later bulletin 22-018 sides with the owners for pre June 2021 vehicles.',
+      "One bulletin, two versions a week apart. Version 2 supersedes version 1 and is the one dealers work from, but it names no cause. Version 1 is the only Honda document in this record that does. Both remain in NHTSA's file.",
     status: 'unresolved',
-    seedDemoData,
+    managedBy,
+  },
+  {
+    _id: 'contradiction-fix-model-years',
+    _type: 'contradiction',
+    topic: 'Model years with a published fix',
+    claimA: ref('claim-investigation-scope'),
+    claimB: ref('claim-update-scope'),
+    explanation:
+      "NHTSA's open investigation covers 2017 to 2022 CR-V, but Honda's update covers 2017 to 2019 only. A 2020 to 2022 CR-V is inside the investigation with no published remedy, and nothing in the record says whether one is coming.",
+    status: 'unresolved',
+    managedBy,
   },
 ]
 
 // ------------------------------------------------------------------- run
 
-
 async function clean() {
-  const types = ['tsb', 'claim', 'contradiction', 'decision']
-  const query = `*[_type in $types && seedDemoData == true]._id`
-  const ids: string[] = await client.fetch(query, {types})
-
+  const ids: string[] = await client.fetch(
+    `*[_type in ["claim", "contradiction"] && managedBy == "seed"]._id`,
+  )
   if (ids.length === 0) {
     console.log('Nothing to clean.')
     return
   }
-
   const tx = ids.reduce((t, id) => t.delete(id), client.transaction())
   await tx.commit()
-  console.log(`Deleted ${ids.length} seeded documents.`)
+  console.log(`Deleted ${ids.length} curated documents. Imported sources are left alone.`)
 }
 
 async function seed() {
-  // Sources before claims before contradictions, so references resolve in
-  // order. One transaction, so a failure leaves nothing half written.
+  const wanted = [...new Set([...overlays.map((o) => o._id), ...claims.map((c) => c.source._ref)])]
+  const found: string[] = await client.fetch(`*[_id in $wanted]._id`, {wanted})
+  const missing = wanted.filter((id) => !found.includes(id))
+  if (missing.length > 0) {
+    throw new Error(`Missing imported sources: ${missing.join(', ')}. Run npm run import:nhtsa first.`)
+  }
+
+  // Claims before contradictions, so references resolve in order. One
+  // transaction, so a failure leaves nothing half written.
   //
   // Each array is walked separately rather than concatenated: createOrReplace
   // is generic over the document it is handed, and a mixed array resolves that
   // generic against the first element then rejects every other type.
   const tx = client.transaction()
-  for (const doc of sources) tx.createOrReplace(doc)
+  for (const {_id, set} of overlays) tx.patch(_id, (patch) => patch.set(set))
   for (const doc of claims) tx.createOrReplace(doc)
   for (const doc of contradictions) tx.createOrReplace(doc)
   await tx.commit()
 
-  console.log(`Seeded ${sources.length} source documents`)
+  console.log(`Annotated ${overlays.length} imported sources`)
   console.log(`Seeded ${claims.length} claims`)
   console.log(`Seeded ${contradictions.length} contradictions`)
   console.log(`\nProject ${projectId}, dataset ${dataset}`)
