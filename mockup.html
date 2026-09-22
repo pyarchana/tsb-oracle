@@ -4,345 +4,381 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TSB Oracle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:          #0f1115;
-    --bg-raised:   #13161b;
-    --hairline:    rgba(255,255,255,0.07);
-    --hairline-hi: rgba(255,255,255,0.12);
-    --text:        #e3e6ea;
-    --text-dim:    #8a9199;
-    --text-faint:  #5c636b;
-    --accent:      #3fb950;
-    --accent-dim:  rgba(63,185,80,0.14);
-    --amber:       #d29922;
-    --amber-dim:   rgba(210,153,34,0.13);
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, Segoe UI, Inter, Roboto, sans-serif;
+    /* Warm near-black. Deliberately not the neutral grey every dark tool uses. */
+    --ink:        #100f0d;
+    --ink-raised: #17150f;
+    --ink-sunk:   #0b0a09;
+    --rule:       rgba(232,227,219,0.09);
+    --rule-firm:  rgba(232,227,219,0.18);
+    --paper:      #e8e3db;
+    --paper-dim:  #9a9187;
+    --paper-faint:#655e56;
+    --signal:     #5fbf7f;
+    --signal-bg:  rgba(95,191,127,0.12);
+    --flag:       #e0a33e;
+    --flag-bg:    rgba(224,163,62,0.11);
+
+    --serif: Newsreader, Georgia, serif;
+    --sans:  "Inter Tight", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
   * { box-sizing: border-box; }
-
   html, body { height: 100%; }
 
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--ink);
+    color: var(--paper);
     font-family: var(--sans);
-    font-size: 15px;
-    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-  }
-
-  /* Tiny uppercase metadata label, used for every section heading. */
-  .label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--text-faint);
   }
 
   .app {
     display: grid;
-    grid-template-columns: minmax(0,1fr) 336px;
+    grid-template-columns: minmax(0,1fr) 300px;
     grid-template-rows: auto minmax(0,1fr);
     height: 100vh;
   }
 
-  /* ---------- header ---------- */
+  /* ---------------------------------------------------------- header */
 
   header {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    gap: 24px;
-    padding: 0 20px;
-    height: 52px;
-    border-bottom: 1px solid var(--hairline);
+    gap: 28px;
+    padding: 0 28px 0 72px;
+    height: 58px;
+    border-bottom: 1px solid var(--rule);
   }
 
   .wordmark {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-dim);
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     white-space: nowrap;
   }
-  .wordmark b { color: var(--text); font-weight: 600; }
+  .wordmark span { color: var(--paper-faint); font-weight: 300; }
 
-  /* Vehicle selector. Reads as a command input, not a form. */
   .vehicle {
     flex: 1;
-    max-width: 560px;
+    max-width: 520px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 32px;
-    padding: 0 10px;
-    background: var(--bg-raised);
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
+    gap: 7px;
+    height: 30px;
     cursor: text;
   }
-  .vehicle:focus-within { border-color: var(--hairline-hi); }
-
-  .caret {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-faint);
-  }
+  .prompt { font-family: var(--mono); font-size: 13px; color: var(--signal); }
 
   .token {
     font-family: var(--mono);
     font-size: 11.5px;
-    color: var(--text);
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    padding: 1px 6px;
+    color: var(--paper);
+    border-bottom: 1px solid var(--rule-firm);
+    padding: 2px 1px;
     white-space: nowrap;
   }
-  .token .k { color: var(--text-faint); }
+  .token i { font-style: normal; color: var(--paper-faint); margin-right: 5px; }
 
-  .ghost {
-    font-size: 13px;
-    color: var(--text-faint);
-    flex: 1;
-  }
+  .hint { font-size: 12.5px; color: var(--paper-faint); margin-left: 4px; }
 
   .kbd {
     font-family: var(--mono);
     font-size: 10px;
-    color: var(--text-faint);
-    border: 1px solid var(--hairline);
-    border-radius: 3px;
-    padding: 1px 5px;
-    background: rgba(255,255,255,0.03);
+    color: var(--paper-faint);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 2px 5px;
+    margin-left: auto;
   }
 
-  /* ---------- conversation ---------- */
+  /* ------------------------------------------------------ conversation */
 
-  .thread {
-    overflow-y: auto;
-    padding: 28px 40px 0;
-  }
+  .thread { overflow-y: auto; padding: 52px 28px 0 72px; }
 
-  .turn { max-width: 720px; margin: 0 auto 36px; }
+  /* Not centred. The column is anchored left and the space falls to the right. */
+  .turn { max-width: 640px; margin-bottom: 44px; }
 
-  .asked {
-    display: flex;
-    gap: 10px;
-    align-items: baseline;
-    margin-bottom: 18px;
-  }
-  .asked .label { flex-shrink: 0; padding-top: 2px; }
-  .asked p {
-    margin: 0;
+  .question {
+    font-family: var(--serif);
     font-size: 15px;
-    color: var(--text-dim);
+    font-weight: 300;
+    font-style: italic;
+    color: var(--paper-dim);
+    margin: 0 0 26px;
+    padding-left: 18px;
+    border-left: 1px solid var(--rule-firm);
   }
 
-  .answer p { margin: 0 0 14px; }
+  /* Answer prose is the serif. It is the only thing on the page set in it. */
+  .answer {
+    font-family: var(--serif);
+    font-size: 18.5px;
+    font-weight: 300;
+    line-height: 1.62;
+    letter-spacing: -0.003em;
+  }
+  .answer p { margin: 0 0 18px; }
+  .answer .lead { font-size: 21px; line-height: 1.5; color: var(--paper); }
 
-  /* Inline citation. The accent appears here and on resolved state, nowhere else. */
   .cite {
     font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    background: var(--accent-dim);
-    border-radius: 3px;
-    padding: 1px 5px;
-    margin-left: 3px;
-    white-space: nowrap;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--signal);
+    background: var(--signal-bg);
+    border-radius: 2px;
+    padding: 2px 5px;
+    margin-left: 2px;
+    vertical-align: 2px;
     cursor: pointer;
-    vertical-align: 1px;
+    white-space: nowrap;
   }
-  .cite:hover { background: rgba(63,185,80,0.24); }
+  .cite:hover { background: rgba(95,191,127,0.22); }
 
-  /* ---------- contradiction block ---------- */
+  /* ---------------------------------------------- the contradiction */
 
+  /* Breaks out past the prose measure. It is the payload, not an aside. */
   .conflict {
-    margin-top: 24px;
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    background: var(--bg-raised);
+    margin: 34px 0 0 -18px;
+    width: calc(100% + 72px);
+    max-width: 712px;
+    background: var(--ink-raised);
+    border-top: 1px solid var(--rule-firm);
+    border-bottom: 1px solid var(--rule-firm);
   }
 
-  .conflict-head {
+  .conflict-top {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--hairline);
+    padding: 13px 22px 0;
+  }
+  .conflict-top h3 {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--paper-dim);
   }
 
   .pill {
     font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.07em;
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 999px;
-    white-space: nowrap;
+    padding: 3px 8px;
+    border-radius: 2px;
   }
-  .pill.unresolved { color: var(--amber);  background: var(--amber-dim);  border: 1px solid rgba(210,153,34,0.3); }
-  .pill.resolved   { color: var(--accent); background: var(--accent-dim); border: 1px solid rgba(63,185,80,0.32); }
+  .pill.open   { color: var(--flag);   background: var(--flag-bg); }
+  .pill.closed { color: var(--signal); background: var(--signal-bg); }
 
-  .claims {
+  /* The seam. The conflict is fundamentally two dates disagreeing, so the
+     dates are the largest thing here and the claims hang beneath them. */
+  .sides {
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
+    margin-top: 12px;
   }
-  .claim { padding: 16px; }
-  .claim-rule { background: var(--hairline); }
+  .seam { background: var(--rule-firm); }
 
-  .claim .src {
+  .side { padding: 16px 22px 20px; }
+  .side + .seam + .side { }
+
+  .when {
     font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 9px;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--paper);
+    line-height: 1;
   }
-  .claim .src .date { color: var(--text-faint); }
-  .claim .statement { margin: 0; font-size: 14px; line-height: 1.55; }
-
-  .why {
-    padding: 14px 16px;
-    border-top: 1px solid var(--hairline);
-    font-size: 13.5px;
-    color: var(--text-dim);
-  }
-  .why strong { color: var(--text); font-weight: 500; }
-  .why .vin { font-family: var(--mono); font-size: 12px; color: var(--text); }
-
-  .ask {
-    padding: 13px 16px;
-    border-top: 1px solid var(--hairline);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 13.5px;
-  }
-  .choice {
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--text);
-    border: 1px solid var(--hairline-hi);
-    border-radius: 5px;
-    padding: 4px 10px;
-    cursor: pointer;
-    background: transparent;
-  }
-  .choice:hover { border-color: rgba(63,185,80,0.4); color: var(--accent); }
-
-  /* ---------- composer ---------- */
-
-  .composer {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 12px 0 24px;
-    position: sticky;
-    bottom: 0;
-    background: linear-gradient(to top, var(--bg) 72%, transparent);
-  }
-  .composer-inner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 44px;
-    padding: 0 14px;
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    background: var(--bg-raised);
-  }
-
-  /* ---------- right rail ---------- */
-
-  aside {
-    border-left: 1px solid var(--hairline);
-    overflow-y: auto;
-    padding: 20px 18px;
-  }
-
-  .rail-section + .rail-section { margin-top: 30px; }
-
-  .rail-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .count { font-family: var(--mono); font-size: 10px; color: var(--text-faint); }
-
-  .source {
-    padding: 10px 0;
-    border-top: 1px solid var(--hairline);
-  }
-  .source:last-child { border-bottom: 1px solid var(--hairline); }
-
-  .source-top {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 4px;
-  }
-  .dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--text-faint);
-    flex-shrink: 0;
-  }
-  .source.cited .dot { background: var(--accent); }
-  .source .id {
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--text);
-  }
-  .source .kind {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    margin-left: auto;
-  }
-  .source .title {
-    font-size: 12.5px;
-    color: var(--text-dim);
-    line-height: 1.45;
-    padding-left: 12px;
-  }
-  .source .meta {
+  .which {
     font-family: var(--mono);
     font-size: 10.5px;
-    color: var(--text-faint);
-    padding-left: 12px;
+    color: var(--paper-faint);
+    margin-top: 6px;
+    margin-bottom: 13px;
+  }
+  .which b { color: var(--paper-dim); font-weight: 400; }
+
+  .side p {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--paper-dim);
+  }
+
+  .bridge {
+    border-top: 1px solid var(--rule);
+    padding: 15px 22px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--paper-dim);
+  }
+  .bridge b { color: var(--paper); font-weight: 500; }
+  .bridge code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--paper);
+  }
+
+  .resolve {
+    border-top: 1px solid var(--rule);
+    padding: 13px 22px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--paper-dim);
+  }
+  .resolve button {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--paper);
+    background: transparent;
+    border: 1px solid var(--rule-firm);
+    border-radius: 2px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  .resolve button:hover { border-color: var(--signal); color: var(--signal); }
+
+  /* ------------------------------------------------------- composer */
+
+  .composer {
+    position: sticky;
+    bottom: 0;
+    max-width: 640px;
+    padding: 16px 0 28px;
+    background: linear-gradient(to top, var(--ink) 70%, transparent);
+  }
+  .composer-line {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-bottom: 1px solid var(--rule-firm);
+    padding-bottom: 10px;
+  }
+  .composer-line .ghost {
+    flex: 1;
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 300;
+    color: var(--paper-faint);
+  }
+
+  /* ----------------------------------------------------------- rail */
+
+  /* Dense, small, mono. The opposite texture to the airy serif beside it. */
+  aside {
+    background: var(--ink-sunk);
+    border-left: 1px solid var(--rule);
+    overflow-y: auto;
+    padding: 22px 22px 40px;
+  }
+
+  .rail-title {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--paper-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .rail-title em {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--paper-faint);
+  }
+
+  .src {
+    display: grid;
+    grid-template-columns: 9px 1fr;
+    gap: 0 9px;
+    padding: 9px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .src:last-of-type { border-bottom: 1px solid var(--rule); }
+
+  .tick {
+    width: 2px;
+    background: var(--rule-firm);
+    grid-row: 1 / -1;
+    margin-left: 3px;
+  }
+  .src.cited .tick { background: var(--signal); }
+
+  .src .no {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--paper);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .src .no s {
+    text-decoration: none;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--paper-faint);
+  }
+  .src .nm {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--paper-dim);
     margin-top: 3px;
   }
-
-  .conflict-row {
-    border-top: 1px solid var(--hairline);
-    padding: 11px 0;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
+  .src .dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--paper-faint);
+    margin-top: 4px;
   }
-  .conflict-row:last-child { border-bottom: 1px solid var(--hairline); }
-  .conflict-row .topic { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
 
-  @media (max-width: 900px) {
+  .rail-block { margin-top: 34px; }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px;
+    color: var(--paper-dim);
+    line-height: 1.4;
+  }
+  .row:last-child { border-bottom: 1px solid var(--rule); }
+
+  @media (max-width: 960px) {
     .app { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr) auto; }
-    aside { border-left: 0; border-top: 1px solid var(--hairline); }
-    .thread { padding: 20px 16px 0; }
-    .claims { grid-template-columns: 1fr; }
-    .claim-rule { height: 1px; }
-    header { gap: 12px; }
+    header { padding: 0 20px; gap: 16px; }
+    .thread { padding: 32px 20px 0; }
+    aside { border-left: 0; border-top: 1px solid var(--rule); }
+    .conflict { margin-left: 0; width: 100%; }
+    .sides { grid-template-columns: 1fr; }
+    .seam { height: 1px; }
   }
 </style>
 </head>
@@ -350,87 +386,82 @@
 <div class="app">
 
   <header>
-    <div class="wordmark"><b>TSB</b> Oracle</div>
+    <div class="wordmark">TSB <span>Oracle</span></div>
     <div class="vehicle">
-      <span class="caret">&rsaquo;</span>
-      <span class="token"><span class="k">Year</span> 2021</span>
-      <span class="token"><span class="k">Make</span> Honda</span>
-      <span class="token"><span class="k">Model</span> CR-V</span>
-      <span class="token"><span class="k">VIN</span> 2HKRW2H8&hellip;</span>
-      <span class="ghost">add or change</span>
-      <span class="kbd">&#8984;K</span>
+      <span class="prompt">&rsaquo;</span>
+      <span class="token"><i>Year</i>2021</span>
+      <span class="token"><i>Make</i>Honda</span>
+      <span class="token"><i>Model</i>CR-V</span>
+      <span class="token"><i>Trim</i>EX</span>
+      <span class="hint">edit</span>
     </div>
+    <span class="kbd">&#8984;K</span>
   </header>
 
   <main class="thread">
 
     <div class="turn">
-      <div class="asked">
-        <span class="label">Asked</span>
-        <p>What is the fix for the CVT shudder on a 2021 CR-V?</p>
-      </div>
+      <p class="question">My CR-V brakes hard on its own with nothing ahead. The dealer says that's normal. Is there a fix?</p>
 
       <div class="answer">
-        <p>There are two manufacturer remedies on file for this symptom and they
-        do not agree with each other. Which one applies to your car depends on
-        when it was built.</p>
+        <p class="lead">Not yet for a 2021. Honda's fix for this braking stops at
+        the 2019 model year, and your car sits inside an open federal
+        investigation instead.</p>
 
-        <p>The earlier bulletin prescribes a CVT control software update and
-        authorizes no hardware work.<span class="cite">20-042</span> The later
-        one supersedes it and calls for torque converter replacement on vehicles
-        built before June 2021, keeping the software remedy for anything
-        newer.<span class="cite">22-018</span> Owner reports also describe the
-        software update failing to hold on 2019 and 2020
-        cars.<span class="cite">forum</span></p>
+        <p>Honda Service Bulletin 26-091 is a free software update to the
+        adaptive cruise control and collision mitigation braking, but it covers
+        2017 to 2019 CR-Vs only.<span class="cite">MC-11035781</span> NHTSA's
+        engineering analysis into inadvertent emergency braking covers 2017 to
+        2022 CR-Vs, is still open, and has no recall
+        attached.<span class="cite">EA24-002</span> Your dealer's answer is one
+        NHTSA noted: many owners say dealers couldn't reproduce the braking or
+        called it normal operation.<span class="cite">PE22-003</span> A 2021
+        owner was told the same in 2025.<span class="cite">ODI-11679500</span></p>
 
         <div class="conflict">
-          <div class="conflict-head">
-            <span class="label">Contradiction</span>
-            <span class="pill unresolved">Unresolved</span>
+          <div class="conflict-top">
+            <h3>Covered by the investigation, not by the fix</h3>
+            <span class="pill open">Unresolved</span>
           </div>
 
-          <div class="claims">
-            <div class="claim">
-              <div class="src">
-                <span>TSB 20-042</span>
-                <span class="date">2020-03-11</span>
-              </div>
-              <p class="statement">A CVT control software update resolves the
-              shudder. No hardware replacement is authorized.</p>
+          <div class="sides">
+            <div class="side">
+              <div class="when">2024</div>
+              <div class="which">NHTSA <b>EA24-002</b> &middot; open</div>
+              <p>The investigation covers 2017 to 2022 CR-V, widened from the
+              2017 to 2019 cars it started with.</p>
             </div>
 
-            <div class="claim-rule"></div>
+            <div class="seam"></div>
 
-            <div class="claim">
-              <div class="src">
-                <span>TSB 22-018</span>
-                <span class="date">2022-06-02</span>
-              </div>
-              <p class="statement">The software update did not resolve it. The
-              torque converter must be replaced below the VIN cutoff.</p>
+            <div class="side">
+              <div class="when">2026</div>
+              <div class="which">Honda <b>26-091</b> &middot; active</div>
+              <p>The software update applies to 2017 to 2019 CR-V, every trim
+              except the LX.</p>
             </div>
           </div>
 
-          <div class="why">
-            <strong>Why these conflict.</strong> 22-018 supersedes 20-042 and
-            splits the remedy on a build date. Vehicles built before
-            <span class="vin">June 2021</span> move to hardware replacement;
-            later ones stay on software. A 2021 CR-V can fall on either side.
+          <div class="bridge">
+            <b>Why they disagree.</b> NHTSA widened its investigation to 2020 to
+            2022 in April 2024, but Honda's July 2026 update stops at
+            <code>2019</code>. A 2020 to 2022 CR-V is inside the investigation
+            with no published remedy, and nothing in the record says whether one
+            is coming.
           </div>
 
-          <div class="ask">
-            <span>Was yours built before June 2021?</span>
-            <button class="choice">Before</button>
-            <button class="choice">On or after</button>
-            <button class="choice">Check my VIN</button>
+          <div class="resolve">
+            <span>Record for 2020 to 2022 CR-V:</span>
+            <button>No published fix</button>
+            <button>Leave open</button>
           </div>
         </div>
       </div>
     </div>
 
     <div class="composer">
-      <div class="composer-inner">
-        <span class="caret">&rsaquo;</span>
+      <div class="composer-line">
+        <span class="prompt">&rsaquo;</span>
         <span class="ghost">Ask about this vehicle</span>
         <span class="kbd">/</span>
       </div>
@@ -439,63 +470,59 @@
   </main>
 
   <aside>
-    <div class="rail-section">
-      <div class="rail-head">
-        <span class="label">Sources</span>
-        <span class="count">4 retrieved &middot; 3 cited</span>
-      </div>
+    <div class="rail-title">Sources <em>5 found &middot; 4 cited</em></div>
 
-      <div class="source cited">
-        <div class="source-top">
-          <span class="dot"></span><span class="id">TSB 20-042</span>
-          <span class="kind">bulletin</span>
-        </div>
-        <div class="title">CVT judder during light acceleration</div>
-        <div class="meta">2020-03-11 &middot; superseded</div>
-      </div>
-
-      <div class="source cited">
-        <div class="source-top">
-          <span class="dot"></span><span class="id">TSB 22-018</span>
-          <span class="kind">bulletin</span>
-        </div>
-        <div class="title">CVT judder, revised repair</div>
-        <div class="meta">2022-06-02 &middot; active</div>
-      </div>
-
-      <div class="source cited">
-        <div class="source-top">
-          <span class="dot"></span><span class="id">forum</span>
-          <span class="kind">owner</span>
-        </div>
-        <div class="title">Software update outcomes, 2019 to 2020</div>
-        <div class="meta">reported &middot; uncorroborated</div>
-      </div>
-
-      <div class="source">
-        <div class="source-top">
-          <span class="dot"></span><span class="id">NHTSA</span>
-          <span class="kind">recall</span>
-        </div>
-        <div class="title">Powertrain campaign record</div>
-        <div class="meta">not cited in this answer</div>
+    <div class="src cited">
+      <div class="tick"></div>
+      <div>
+        <div class="no"><span>MC-11035781</span><s>bulletin</s></div>
+        <div class="nm">26-091 v2: Honda Sensing software update</div>
+        <div class="dt">2026-07-31 &middot; active</div>
       </div>
     </div>
 
-    <div class="rail-section">
-      <div class="rail-head">
-        <span class="label">Contradictions</span>
-        <span class="count">1 open</span>
+    <div class="src cited">
+      <div class="tick"></div>
+      <div>
+        <div class="no"><span>EA24-002</span><s>investigation</s></div>
+        <div class="nm">Inadvertent automatic emergency braking</div>
+        <div class="dt">2024-04-15 &middot; open</div>
       </div>
+    </div>
 
-      <div class="conflict-row">
-        <span class="topic">CR-V CVT shudder remedy</span>
-        <span class="pill unresolved">Unresolved</span>
+    <div class="src cited">
+      <div class="tick"></div>
+      <div>
+        <div class="no"><span>PE22-003</span><s>investigation</s></div>
+        <div class="nm">Preliminary evaluation, upgraded to EA24-002</div>
+        <div class="dt">2022-02-21 &middot; closed</div>
       </div>
+    </div>
 
-      <div class="conflict-row">
-        <span class="topic">Software update effectiveness</span>
-        <span class="pill resolved">Resolved</span>
+    <div class="src cited">
+      <div class="tick"></div>
+      <div>
+        <div class="no"><span>ODI-11679500</span><s>complaint</s></div>
+        <div class="nm">2021 owner: freeway braking, told it was normal</div>
+        <div class="dt">2025-08-09 &middot; reported</div>
+      </div>
+    </div>
+
+    <div class="src">
+      <div class="tick"></div>
+      <div>
+        <div class="no"><span>MC-10189042</span><s>dealer</s></div>
+        <div class="nm">Honda asks dealers to find CR-Vs with unexpected braking</div>
+        <div class="dt">not cited here</div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-title">Contradictions <em>1 open</em></div>
+
+      <div class="row">
+        <span>Model years with a published fix</span>
+        <span class="pill open">Open</span>
       </div>
     </div>
   </aside>
