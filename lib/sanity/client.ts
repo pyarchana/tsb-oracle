@@ -14,3 +14,13 @@ export const sanityClient = createClient({
   useCdn: true,
   perspective: 'published',
 })
+
+/**
+ * Same dataset, CDN bypassed. Use it for reads that must see a write made
+ * moments earlier: a decision recorded in one turn has to be visible when the
+ * same question is asked in the next.
+ *
+ * No token, so it reads published documents only, which is all the public
+ * dataset exposes anyway.
+ */
+export const sanityFreshClient = sanityClient.withConfig({useCdn: false})
