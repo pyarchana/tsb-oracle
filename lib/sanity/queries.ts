@@ -14,12 +14,14 @@ export const SOURCES_FOR_VEHICLE = defineQuery(`
     && ($model == null || lower(model) == lower($model))
     && ($year == null || $year in modelYears)
   ] | order(publishDate asc) {
-    "id": _id,
     tsbNumber,
+    manufacturerNumber,
     title,
     sourceType,
     status,
     publishDate,
+    sourceUrl,
+    excludedTrims,
     vinRangeStart,
     vinRangeEnd
   }
@@ -28,6 +30,7 @@ export const SOURCES_FOR_VEHICLE = defineQuery(`
 const CLAIM_PROJECTION = `{
   "id": _id,
   statement,
+  quote,
   confidence,
   "tsbNumber": source->tsbNumber,
   "publishDate": source->publishDate,
@@ -37,10 +40,14 @@ const CLAIM_PROJECTION = `{
 /**
  * Contradictions touching any of the given sources, each with both of its
  * claims and the most recent decision that settled it, if there is one.
+ *
+ * Sources are matched on the NHTSA id rather than the Sanity _id. The NHTSA id
+ * is unique too, and it is the only id the model sees: handed both, it
+ * sometimes cites the internal one, which no dealer can look up.
  */
 export const CONTRADICTIONS_FOR_SOURCES = defineQuery(`
   *[_type == "contradiction"
-    && (claimA->source._ref in $sourceIds || claimB->source._ref in $sourceIds)
+    && (claimA->source->tsbNumber in $tsbNumbers || claimB->source->tsbNumber in $tsbNumbers)
   ] | order(topic asc) {
     "id": _id,
     topic,
@@ -66,12 +73,21 @@ export const CONTRADICTIONS_FOR_SOURCES = defineQuery(`
  */
 
 export interface SourceRow {
-  id: string
   tsbNumber: string
+  manufacturerNumber: string | null
   title: string
-  sourceType: 'tsb' | 'recall' | 'manual' | 'forum' | 'nhtsa'
-  status: 'active' | 'superseded' | 'revised'
+  sourceType:
+    | 'tsb'
+    | 'dealer-message'
+    | 'owner-letter'
+    | 'recall'
+    | 'investigation'
+    | 'complaint'
+    | 'manual'
+  status: 'active' | 'superseded' | 'revised' | 'closed'
   publishDate: string | null
+  sourceUrl: string | null
+  excludedTrims: string[] | null
   vinRangeStart: string | null
   vinRangeEnd: string | null
 }
@@ -79,6 +95,7 @@ export interface SourceRow {
 export interface ClaimRow {
   id: string
   statement: string
+  quote: string | null
   confidence: 'verified' | 'reported' | 'disputed'
   tsbNumber: string
   publishDate: string | null
