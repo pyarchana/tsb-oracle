@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "import:nhtsa": "tsx scripts/import-nhtsa.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.58",
