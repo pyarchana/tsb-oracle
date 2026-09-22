@@ -1,6 +1,7 @@
 import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
+import {ApproveDecisionAction, RejectDecisionAction} from './sanity/actions/reviewDecision'
 import {contradictionStatusBadge} from './sanity/badges/contradictionStatus'
 import {apiVersion, dataset, projectId} from './sanity/env'
 import {schemaTypes} from './sanity/schemaTypes'
@@ -21,5 +22,9 @@ export default defineConfig({
   document: {
     badges: (prev, context) =>
       context.schemaType === 'contradiction' ? [...prev, contradictionStatusBadge] : prev,
+    actions: (prev, context) =>
+      context.schemaType === 'decision'
+        ? [ApproveDecisionAction, RejectDecisionAction, ...prev]
+        : prev,
   },
 })
