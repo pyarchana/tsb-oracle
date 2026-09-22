@@ -16,8 +16,9 @@ import {loadEnvConfig} from '@next/env'
  *   npm run seed
  *   npm run seed -- --clean    removes the claims and contradictions
  *
- * Ids are fixed and writes replace, so running this twice gives the same
- * dataset rather than a second copy. It builds its own client rather than
+ * Ids are fixed and writes replace everything but a contradiction's status,
+ * which the Studio's review owns, so running this twice gives the same dataset
+ * rather than a second copy. It builds its own client rather than
  * importing lib/sanity/writeClient, which imports server-only and throws
  * outside a React Server Component.
  */
@@ -358,7 +359,12 @@ async function seed() {
   const tx = client.transaction()
   for (const {_id, set} of overlays) tx.patch(_id, (patch) => patch.set(set))
   for (const doc of claims) tx.createOrReplace(doc)
-  for (const doc of contradictions) tx.createOrReplace(doc)
+  // A contradiction's status belongs to the review, not the seed: approving a
+  // decision marks it resolved, and a reseed must not quietly reopen it.
+  for (const {_id, _type, status, ...fields} of contradictions) {
+    tx.createIfNotExists({_id, _type, status, ...fields})
+    tx.patch(_id, (patch) => patch.set(fields))
+  }
   await tx.commit()
 
   console.log(`Annotated ${overlays.length} imported sources`)
