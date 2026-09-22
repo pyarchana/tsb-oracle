@@ -39,7 +39,10 @@ const CLAIM_PROJECTION = `{
 
 /**
  * Contradictions touching any of the given sources, each with both of its
- * claims and the most recent decision that settled it, if there is one.
+ * claims, the most recent approved decision that settled it, and any proposal
+ * still waiting for a person to review. A proposal is returned apart from the
+ * decision because it settles nothing yet, but the agent needs to see it so it
+ * does not propose the same resolution twice.
  *
  * Sources are matched on the NHTSA id rather than the Sanity _id. The NHTSA id
  * is unique too, and it is the only id the model sees: handed both, it
@@ -55,11 +58,19 @@ export const CONTRADICTIONS_FOR_SOURCES = defineQuery(`
     status,
     "claimA": claimA->${CLAIM_PROJECTION},
     "claimB": claimB->${CLAIM_PROJECTION},
-    "decision": *[_type == "decision" && contradiction._ref == ^._id]
-      | order(resolvedAt desc)[0] {
+    "decision": *[_type == "decision" && contradiction._ref == ^._id && status == "approved"]
+      | order(reviewedAt desc)[0] {
         "id": _id,
         rationale,
         resolvedBy,
+        resolvedAt,
+        reviewedAt,
+        "resolvedClaimId": resolvedClaim._ref
+      },
+    "pendingProposal": *[_type == "decision" && contradiction._ref == ^._id && status == "proposed"]
+      | order(resolvedAt desc)[0] {
+        "id": _id,
+        rationale,
         resolvedAt,
         "resolvedClaimId": resolvedClaim._ref
       }
@@ -107,6 +118,14 @@ export interface DecisionRow {
   rationale: string
   resolvedBy: 'agent' | 'human'
   resolvedAt: string
+  reviewedAt: string
+  resolvedClaimId: string
+}
+
+export interface ProposalRow {
+  id: string
+  rationale: string
+  resolvedAt: string
   resolvedClaimId: string
 }
 
@@ -118,4 +137,5 @@ export interface ContradictionRow {
   claimA: ClaimRow
   claimB: ClaimRow
   decision: DecisionRow | null
+  pendingProposal: ProposalRow | null
 }

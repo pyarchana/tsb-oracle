@@ -59,7 +59,7 @@ function trimStatus(trim: string | undefined, excluded: string[] | null): TrimSt
 
 export const checkApplicability = tool({
   description:
-    'Look up which source documents apply to a vehicle, together with every contradiction between claims in those documents and the decision that settled it, if one has been recorded. ' +
+    'Look up which source documents apply to a vehicle, together with every contradiction between claims in those documents, the approved decision that settled it if there is one, and any proposal still awaiting review. ' +
     'Use it once you know the year, make and model, before answering, so you know whether a disagreement is already settled or still open. ' +
     'Pass the trim and VIN when you have them. A document that leaves out some trims comes back marked excluded or not-excluded for the given trim, or trim-not-given when it names exclusions and you passed no trim, which is worth asking about. ' +
     'A document with a VIN range comes back marked in-range or out-of-range, where the range covers the cars one specific remedy in that document applies to, not whether the document applies at all, so read its claims rather than discarding it. ' +
