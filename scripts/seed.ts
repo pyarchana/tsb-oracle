@@ -108,7 +108,7 @@ const overlays: Overlay[] = [
   {
     _id: V1,
     set: {
-      title: 'Service Bulletin 26-091, version 1: CMBS software update',
+      title: 'MC-11035885: Service Bulletin 26-091, version 1, CMBS software update',
       status: 'superseded',
       excludedTrims: ['LX'],
     },
@@ -116,18 +116,22 @@ const overlays: Overlay[] = [
   {
     _id: V2,
     set: {
-      title: 'Service Bulletin 26-091, version 2: Honda Sensing software update',
+      title: 'MC-11035781: Service Bulletin 26-091, version 2, Honda Sensing software update',
       status: 'active',
       excludedTrims: ['LX'],
     },
   },
   {
     _id: OWNER_LETTER,
-    set: {title: 'Owner letter for Service Bulletin 26-091: free Honda Sensing software update'},
+    set: {
+      title: 'MC-11037300: owner letter for Service Bulletin 26-091, free Honda Sensing software update',
+    },
   },
   {
     _id: DEALER_SEARCH_2021,
-    set: {title: 'Dealer message: Honda asks dealers to find CR-Vs with unexpected CMBS braking'},
+    set: {
+      title: 'MC-10189042: dealer message, Honda asks dealers to find CR-Vs with unexpected CMBS braking',
+    },
   },
 ]
 

@@ -10,8 +10,13 @@ import {loadEnvConfig} from '@next/env'
  *
  * Every document it writes links back to the NHTSA record it came from, and
  * rerunning it refreshes those records in place. It only sets the fields it
- * owns, so a title, a status or an excluded trim added by scripts/seed.ts
- * survives the next import.
+ * owns, so a status or an excluded trim added by scripts/seed.ts survives the
+ * next import. Titles belong to the import, which is why the seed runs after
+ * it and puts its curated titles back.
+ *
+ * Every title starts with the NHTSA id. Knowledge Base entries label their
+ * sources by title, so an id that only lived in a field never reached the
+ * agent, and a complaint it cited as ODI-11561420 could not be verified.
  *
  * The API needs no key. Nothing here is fetched from anywhere else.
  */
@@ -309,7 +314,7 @@ async function communications(seen: Awaited<ReturnType<typeof fetchVehicleYears>
 
     docs.push({
       _id: `nhtsa-mc-${first.nhtsaIdNumber}`,
-      title: `${first.manufacturerCommunicationNumber}: ${shorten(paragraphs[0])}`,
+      title: `MC-${first.nhtsaIdNumber}: ${first.manufacturerCommunicationNumber}, ${shorten(paragraphs[0])}`,
       facts: {
         tsbNumber: `MC-${first.nhtsaIdNumber}`,
         manufacturerNumber: first.manufacturerCommunicationNumber,
@@ -417,7 +422,7 @@ function complaints(seen: Awaited<ReturnType<typeof fetchVehicleYears>>['complai
 
     docs.push({
       _id: `nhtsa-cmp-${odi}`,
-      title: `Owner complaint ${odi}: ${shorten(clean(record.description)[0], 70)}`,
+      title: `ODI-${odi}: owner complaint, ${shorten(clean(record.description)[0], 70)}`,
       facts: {
         tsbNumber: `ODI-${odi}`,
         make: 'Honda',
@@ -448,13 +453,13 @@ async function run() {
     complaints: complaints(seen.complaints),
   }
 
-  // createIfNotExists sets the title and a starting status once; the patch
-  // then overwrites only the fields this script owns.
+  // createIfNotExists sets a starting status once; the patch then overwrites
+  // the fields this script owns, title included.
   const tx = client.transaction()
   for (const docs of Object.values(groups)) {
     for (const {_id, title, facts} of docs) {
       tx.createIfNotExists({_id, _type: 'tsb', title, status: 'active'})
-      tx.patch(_id, (patch) => patch.set(facts))
+      tx.patch(_id, (patch) => patch.set({...facts, title}))
     }
   }
   await tx.commit()
