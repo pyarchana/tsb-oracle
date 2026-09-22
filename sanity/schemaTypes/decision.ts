@@ -6,6 +6,10 @@ import {defineField, defineType} from 'sanity'
  * This is what makes a resolution outlive the conversation it happened in. The
  * agent reads these back on later queries, so the same question asked next week
  * leads with the answer rather than re-opening the same conflict.
+ *
+ * The agent can only propose one. A proposal counts once a person approves it
+ * in the Studio, which is what stops anyone chatting with a public demo from
+ * settling a question for everyone who asks after them.
  */
 export const decision = defineType({
   name: 'decision',
@@ -34,8 +38,24 @@ export const decision = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'status',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Proposed', value: 'proposed'},
+          {title: 'Approved', value: 'approved'},
+          {title: 'Rejected', value: 'rejected'},
+        ],
+        layout: 'radio',
+      },
+      description: 'Set by the Approve and Reject actions. Only an approved decision settles anything.',
+      initialValue: 'proposed',
+      readOnly: true,
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
       name: 'resolvedBy',
-      title: 'Resolved by',
+      title: 'Proposed by',
       type: 'string',
       options: {
         list: [
@@ -44,22 +64,24 @@ export const decision = defineType({
         ],
         layout: 'radio',
       },
-      initialValue: 'agent',
+      initialValue: 'human',
       validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'resolvedAt',
-      title: 'Resolved at',
+      title: 'Proposed at',
       type: 'datetime',
+      initialValue: () => new Date().toISOString(),
       validation: (rule) => rule.required(),
     }),
+    defineField({name: 'reviewedAt', title: 'Reviewed at', type: 'datetime', readOnly: true}),
   ],
   preview: {
-    select: {topic: 'contradiction.topic', by: 'resolvedBy', at: 'resolvedAt'},
-    prepare({topic, by, at}) {
+    select: {topic: 'contradiction.topic', status: 'status', by: 'resolvedBy', at: 'resolvedAt'},
+    prepare({topic, status, by, at}) {
       return {
-        title: topic ? `Resolved: ${topic}` : 'Resolved',
-        subtitle: [by, at ? new Date(at).toLocaleDateString() : null].filter(Boolean).join(' / '),
+        title: topic ?? 'Decision',
+        subtitle: [status, by, at ? new Date(at).toLocaleDateString() : null].filter(Boolean).join(' / '),
       }
     },
   },
