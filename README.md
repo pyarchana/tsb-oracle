@@ -105,7 +105,25 @@ injuries against 93). Each was resolved in favor of the reading the source
 supports. None of our curated claims conflicted, since each one says who made
 the statement it records.
 
+## Decisions
+
+When sources disagree, the agent can propose how the disagreement resolves,
+but it cannot settle it. Its `record_decision` tool writes a proposal, and a
+person reviews it in the Studio under **Decisions → Awaiting review**.
+
+- **Approve** marks the decision approved and its contradiction resolved in one
+  transaction. From then on `check_applicability` returns it as settled, and
+  the agent leads with that answer instead of reopening the question.
+- **Reject** leaves the contradiction open.
+- While a proposal waits, the agent sees it and does not propose the same thing
+  again. The tool also refuses a claim that is not one of the contradiction's
+  two, and a contradiction that is already settled.
+
+The review step exists because the app may be public. Without it, anyone
+chatting with the agent could settle a question for everyone who asks after
+them. Rerunning `npm run seed` updates contradictions but keeps the status a
+review gave them.
+
 ## Status
 
-Under construction. Recorded decisions, the UI and example questions land as
-the build progresses.
+Under construction. The UI and example questions land as the build progresses.
