@@ -2,6 +2,7 @@ import {anthropic} from '@ai-sdk/anthropic'
 import {convertToModelMessages, isStepCount, streamText, type UIMessage} from 'ai'
 import {resolveContextProvider} from '@/lib/context-mcp'
 import {buildSystemPrompt, type Vehicle} from './systemPrompt'
+import {checkApplicability} from './tools/checkApplicability'
 
 export const MODEL_ID = 'claude-sonnet-5'
 
@@ -26,7 +27,10 @@ export interface RunAgentInput {
  */
 export async function runAgent({messages, vehicle}: RunAgentInput) {
   const context = await resolveContextProvider()
-  const tools = await context.tools()
+  const tools = {
+    ...(await context.tools()),
+    check_applicability: checkApplicability,
+  }
 
   return streamText({
     model: anthropic(MODEL_ID),
