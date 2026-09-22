@@ -1,3 +1,4 @@
+import {useToast} from '@sanity/ui/toast'
 import {useState} from 'react'
 import {type DocumentActionComponent, type DocumentActionProps, useClient} from 'sanity'
 import {apiVersion} from '../env'
@@ -15,9 +16,13 @@ interface DecisionDoc {
  * Both act on the published document. A decision with unpublished edits has to
  * be published or discarded first, or the review would approve text nobody
  * has looked at.
+ *
+ * The outcome is announced in a toast. Without one, a successful approval only
+ * shows as the button greying out, which reads as nothing having happened.
  */
 function useReview(props: DocumentActionProps, outcome: 'approved' | 'rejected') {
   const client = useClient({apiVersion})
+  const toast = useToast()
   const [working, setWorking] = useState(false)
   const doc = props.published as DecisionDoc | null
 
@@ -40,6 +45,20 @@ function useReview(props: DocumentActionProps, outcome: 'approved' | 'rejected')
         tx.patch(doc.contradiction._ref, (patch) => patch.set({status: 'resolved'}))
       }
       await tx.commit()
+      toast.push({
+        status: 'success',
+        title: outcome === 'approved' ? 'Decision approved' : 'Decision rejected',
+        description:
+          outcome === 'approved'
+            ? 'The contradiction is marked resolved, and the agent will give this answer from now on.'
+            : 'The contradiction stays open.',
+      })
+    } catch (error) {
+      toast.push({
+        status: 'error',
+        title: 'The review was not saved',
+        description: error instanceof Error ? error.message : String(error),
+      })
     } finally {
       setWorking(false)
     }
