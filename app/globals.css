@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
+/*
+ * Palette and type for the app. Component styles live in CSS modules beside
+ * each component, so nothing here reaches into the Studio beyond the page
+ * background, which the Studio covers anyway.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Warm near-black. Deliberately not the neutral grey every dark tool uses. */
+  --ink: #100f0d;
+  --ink-raised: #17150f;
+  --ink-sunk: #0b0a09;
+  --rule: rgba(232, 227, 219, 0.09);
+  --rule-firm: rgba(232, 227, 219, 0.18);
+  --paper: #e8e3db;
+  --paper-dim: #9a9187;
+  --paper-faint: #655e56;
+  --signal: #5fbf7f;
+  --signal-bg: rgba(95, 191, 127, 0.12);
+  --flag: #e0a33e;
+  --flag-bg: rgba(224, 163, 62, 0.11);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --serif: var(--font-newsreader), Georgia, serif;
+  --sans: var(--font-inter-tight), -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
 }

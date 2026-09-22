@@ -1,0 +1,135 @@
+/* Breaks out past the prose measure. It is the payload, not an aside. */
+.conflict {
+  margin: 34px 0 0 -18px;
+  width: calc(100% + 72px);
+  max-width: 712px;
+  background: var(--ink-raised);
+  border-top: 1px solid var(--rule-firm);
+  border-bottom: 1px solid var(--rule-firm);
+}
+.conflict + .conflict {
+  margin-top: 18px;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 22px 0;
+}
+.top h3 {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: var(--paper-dim);
+}
+
+/* The dates are the largest thing here and the claims hang beneath them. */
+.sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 12px;
+}
+
+.side {
+  padding: 16px 22px 20px;
+}
+.seam {
+  border-left: 1px solid var(--rule-firm);
+}
+
+.when {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  line-height: 1;
+}
+.applies .when {
+  color: var(--signal);
+}
+
+.which {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-faint);
+  margin-top: 6px;
+  margin-bottom: 13px;
+}
+.which b {
+  color: var(--paper-dim);
+  font-weight: 400;
+}
+
+.side p {
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--paper-dim);
+}
+
+.bridge {
+  border-top: 1px solid var(--rule);
+  padding: 15px 22px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--paper-dim);
+}
+.bridge b,
+.resolve b {
+  color: var(--paper);
+  font-weight: 500;
+}
+
+.resolve {
+  border-top: 1px solid var(--rule);
+  padding: 13px 22px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+}
+.resolve button {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--rule-firm);
+  border-radius: 2px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.resolve button:hover:not(:disabled),
+.resolve button:focus-visible {
+  border-color: var(--signal);
+  color: var(--signal);
+  outline: none;
+}
+.resolve button:disabled {
+  color: var(--paper-faint);
+  cursor: not-allowed;
+}
+
+@media (max-width: 960px) {
+  .conflict {
+    margin-left: 0;
+    width: 100%;
+  }
+  .sides {
+    grid-template-columns: 1fr;
+  }
+  .seam {
+    border-left: 0;
+    border-top: 1px solid var(--rule-firm);
+  }
+}

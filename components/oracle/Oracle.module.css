@@ -1,0 +1,213 @@
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+/* ------------------------------------------------------------ header */
+
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 28px 0 72px;
+  height: 58px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wordmark {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.wordmark span {
+  color: var(--paper-faint);
+  font-weight: 300;
+}
+
+.vehicle {
+  flex: 1;
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  min-width: 0;
+}
+
+.prompt {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--signal);
+}
+
+.token {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--rule-firm);
+  padding: 2px 1px;
+  white-space: nowrap;
+  cursor: text;
+}
+.token:focus-within {
+  border-bottom-color: var(--signal);
+}
+.token i {
+  font-style: normal;
+  color: var(--paper-faint);
+  margin-right: 5px;
+}
+.token input {
+  font: inherit;
+  color: var(--paper);
+  background: transparent;
+  border: 0;
+  outline: none;
+  padding: 0;
+}
+
+/* ------------------------------------------------------ conversation */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 52px 28px 0 72px;
+}
+
+.examples {
+  max-width: 640px;
+  margin-bottom: 44px;
+}
+.examples h1 {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1.3;
+  margin: 0 0 12px;
+}
+.examples p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--paper-dim);
+  margin: 0 0 28px;
+}
+.examples button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--rule-firm);
+  padding: 4px 0 4px 18px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.examples button:hover,
+.examples button:focus-visible {
+  color: var(--paper);
+  border-left-color: var(--signal);
+  outline: none;
+}
+
+.error {
+  max-width: 640px;
+  font-size: 13.5px;
+  color: var(--flag);
+  margin: 0 0 32px;
+}
+.error button {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--rule-firm);
+  border-radius: 2px;
+  padding: 3px 9px;
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------- composer */
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  max-width: 640px;
+  padding: 16px 0 28px;
+  background: linear-gradient(to top, var(--ink) 70%, transparent);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid var(--rule-firm);
+  padding-bottom: 10px;
+}
+.line:focus-within {
+  border-bottom-color: var(--signal);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--paper);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+.input::placeholder {
+  color: var(--paper-faint);
+}
+
+.stop {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--paper-faint);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.stop:hover {
+  color: var(--paper);
+  border-color: var(--rule-firm);
+}
+
+/* On a narrow screen the page scrolls as a whole and the sources follow the conversation. */
+@media (max-width: 960px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: 100dvh;
+  }
+  .header {
+    padding: 0 16px;
+    gap: 16px;
+  }
+  .vehicle {
+    overflow-x: auto;
+  }
+  .thread {
+    overflow: visible;
+    padding: 32px 16px 0;
+  }
+}

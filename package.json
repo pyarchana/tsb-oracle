@@ -13,6 +13,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.58",
     "@ai-sdk/mcp": "^2.0.54",
+    "@ai-sdk/react": "^4.0.110",
     "@sanity/client": "^8.6.2",
     "@sanity/ui": "^4.2.3",
     "@sanity/vision": "^6.15.0",

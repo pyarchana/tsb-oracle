@@ -1,0 +1,119 @@
+/* Not centred. The column is anchored left and the space falls to the right. */
+.turn {
+  max-width: 640px;
+  margin-bottom: 44px;
+}
+
+.question {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 300;
+  font-style: italic;
+  color: var(--paper-dim);
+  margin: 0 0 22px;
+  padding-left: 18px;
+  border-left: 1px solid var(--rule-firm);
+}
+
+/* ------------------------------------------------------------- trail */
+
+.trail {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--paper-faint);
+  margin: 0 0 22px;
+}
+.trail summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.trail summary:hover {
+  color: var(--paper-dim);
+}
+.trail ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--rule);
+}
+.trail li {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+  min-width: 0;
+}
+.stepDetail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--paper-faint);
+  opacity: 0.8;
+}
+.running {
+  color: var(--paper-dim);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.failed {
+  color: var(--flag);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .running {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------ answer */
+
+/* Answer prose is the serif. It is the only thing on the page set in it at size. */
+.answer {
+  font-family: var(--serif);
+  font-size: 18.5px;
+  font-weight: 300;
+  line-height: 1.62;
+  letter-spacing: -0.003em;
+}
+.answer p {
+  margin: 0 0 18px;
+}
+.answer .lead {
+  font-size: 21px;
+  line-height: 1.5;
+  color: var(--paper);
+}
+
+.cite {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--signal);
+  background: var(--signal-bg);
+  border-radius: 2px;
+  padding: 2px 5px;
+  margin-left: 3px;
+  vertical-align: 2px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+a.cite:hover {
+  background: rgba(95, 191, 127, 0.22);
+}
+
+/* Cited but never retrieved: still shown, so the user knows not to trust it. */
+.cite.unverified {
+  color: var(--flag);
+  background: var(--flag-bg);
+  cursor: help;
+}
+
+.unverifiedQuote {
+  text-decoration: underline dotted var(--flag);
+  text-underline-offset: 4px;
+  cursor: help;
+}
