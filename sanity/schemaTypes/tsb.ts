@@ -103,7 +103,9 @@ export const tsb = defineType({
     select: {title: 'title', tsbNumber: 'tsbNumber', status: 'status', sourceType: 'sourceType'},
     prepare({title, tsbNumber, status, sourceType}) {
       return {
-        title: tsbNumber ? `${tsbNumber} ${title}` : title,
+        // The import writes the NHTSA id into the title, so prepending it here
+        // would print it twice. Curated titles that predate that still get it.
+        title: tsbNumber && !String(title).startsWith(tsbNumber) ? `${tsbNumber} ${title}` : title,
         subtitle: [sourceType, status].filter(Boolean).join(' / '),
       }
     },
