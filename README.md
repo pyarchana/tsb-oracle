@@ -1,129 +1,206 @@
 # TSB Oracle
 
-Answers automotive Technical Service Bulletin, recall and repair questions with
-source-linked, contradiction-aware answers.
+[![CI](https://github.com/pyarchana/tsb-oracle/actions/workflows/ci.yml/badge.svg)](https://github.com/pyarchana/tsb-oracle/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-tsb--oracle.vercel.app-black)](https://tsb-oracle.vercel.app)
+[![Built with Sanity](https://img.shields.io/badge/content-Sanity-f36458.svg)](https://www.sanity.io)
 
-Most repair advice for a given symptom is contradictory. A bulletin names a
-cause and its revision a week later drops it, an investigation covers more model
-years than the fix does, and owners say the dealer called it normal. TSB Oracle
-retrieves all of it, shows the conflicts side by side with their sources,
-explains why they conflict, and records the resolution so it persists for later
-queries.
+**Car repair answers that cite their sources and show you where those sources
+disagree.**
 
-The dataset covers one vehicle and one safety system: unexpected automatic
-emergency braking (Honda's CMBS) on the 2017 to 2022 Honda CR-V.
+[Live demo](https://tsb-oracle.vercel.app) · Sanity project `e72p6sym`, dataset
+`production`
 
-## Data
+## Description
 
-Every source document comes from NHTSA's public records.
-`scripts/import-nhtsa.ts` pulls them from [api.nhtsa.gov](https://api.nhtsa.gov),
-which needs no key: Honda's service bulletins, dealer messages and owner
-letters, NHTSA's investigations, and two owner complaints. Each document links
-to its NHTSA record in `sourceUrl`, and rerunning the import refreshes them in
-place.
+Ask about a fault on your car and the public record contradicts itself. A
+bulletin names a cause, and its revision a week later quietly drops that
+sentence. A federal investigation covers 2017 to 2022 while the manufacturer's
+fix stops at 2019. Owners report that the dealer called it normal. All of it is
+true at once, and a search engine hands you whichever page ranks best.
 
-`scripts/seed.ts` adds the curated layer on top: which bulletin version is
-current, which trim a bulletin leaves out, and the claims and contradictions the
-agent reasons over. Every claim carries the exact words it rests on.
+TSB Oracle retrieves all of it instead. Every sentence in an answer carries the
+NHTSA id it came from, quotes are verified against the document they are
+attributed to, and when two sources disagree about your exact car, the
+disagreement is laid out rather than resolved by guesswork. A person can then
+settle it, and the settled answer is what the next person gets.
 
-The text of each document is the summary NHTSA publishes for that record.
-Honda's bulletins are Honda's copyright, so the claims quote them briefly and
-the documents link to the copy NHTSA hosts instead of storing it. Owner
-complaints keep the narrative and drop the partial VIN and town NHTSA publishes
-with them.
+The demo dataset is one vehicle and one system, built from real NHTSA records:
+unexpected automatic emergency braking on the 2017 to 2022 Honda CR-V.
 
-This is not repair advice. The records are as of the date each document was
-retrieved (`retrievedAt`), and NHTSA's investigation EA24-002 was still open at
-that point. Whether a bulletin applies to a particular car is decided by a
-dealer's VIN check.
+## Visuals
 
-## Stack
+An answer, its citations, and the contradiction it raised:
 
-- Next.js 16 (App Router), TypeScript, Tailwind 4
-- Sanity for structured content, Studio embedded at `/studio`
-- Sanity Context MCP for knowledge retrieval
-- Vercel AI SDK for the tool-calling agent loop, Anthropic model
+![An answer citing its sources, with the contradiction laid out below it](docs/screenshots/app-open-contradiction.png)
 
-## Setup
+What the agent read, while it is still reading:
+
+![The agent mid-lookup, listing the entries it has opened](docs/screenshots/app-trail.png)
+
+A proposal from the agent, approved by a person in the Studio:
+
+![A decision approved in the Sanity Studio](docs/screenshots/studio-approve-toast.png)
+
+## Table of contents
+
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Installation](#installation)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+## Features
+
+- **Answers only from retrieved sources.** Nothing it cannot cite, and a plain
+  "I don't have sources for that" when the dataset is silent.
+- **Citations that link to the record.** Each chip opens the NHTSA document it
+  refers to.
+- **Two checks on every answer.** A citation the agent never retrieved is
+  flagged amber. A quote is verified against the dataset's copy of the document
+  it is attributed to, which caught version 1 wording cited to version 2 during
+  testing.
+- **Contradictions shown, not hidden.** Both claims, their dates, and a plain
+  explanation of why they conflict.
+- **Proposals, not decrees.** The agent proposes a resolution; a person
+  approves or rejects it in the Studio before it counts.
+- **Keyboard first.** `/` to ask, `Ctrl K` or `Cmd K` for the vehicle, Escape
+  to back out or to stop an answer.
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| App | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | CSS Modules over Tailwind 4's reset |
+| Content | Sanity, with the Studio embedded at `/studio` |
+| Retrieval | Sanity Context MCP over a Knowledge Base |
+| Agent | Vercel AI SDK tool-calling loop, Claude Sonnet |
+| Hosting | Vercel |
+
+## Installation
 
 ```bash
+git clone https://github.com/pyarchana/tsb-oracle.git
+cd tsb-oracle
 npm install
 cp .env.example .env.local
-npm run import:nhtsa
-npm run seed
+```
+
+Fill in `.env.local`:
+
+| Variable | Needed for |
+|---|---|
+| `ANTHROPIC_API_KEY` | the agent |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | reading content |
+| `NEXT_PUBLIC_SANITY_DATASET` | reading content |
+| `SANITY_API_TOKEN` | the import, the seed, and writing proposals |
+| `SANITY_CONTEXT_MCP_URL` | the Knowledge Base |
+| `SANITY_ORGANIZATION_TOKEN` | the Knowledge Base |
+
+Then load the data and start it:
+
+```bash
+npm run import:nhtsa   # real NHTSA records, no API key needed
+npm run seed           # claims and contradictions on top
 npm run dev
 ```
 
-Fill in `SANITY_API_TOKEN` and `ANTHROPIC_API_KEY` in `.env.local` before
-importing. The app runs at http://localhost:3000 and the Studio at
-http://localhost:3000/studio. Until the two Context variables below are set,
-the agent reads local fixtures in `lib/context-mcp/fixtures.ts` instead of the
-Knowledge Base, and logs a warning saying so.
+App at http://localhost:3000, Studio at http://localhost:3000/studio.
 
-Sanity project ID: `e72p6sym`, dataset `production` (public).
+Without the two Context variables the agent falls back to fixtures in
+`lib/context-mcp/fixtures.ts` and logs a warning. That is enough to develop
+against, but it is not the Knowledge Base.
 
-## Knowledge Base
+Deploying is covered in [docs/deploying.md](docs/deploying.md), including the
+CORS origin the sources panel needs.
 
-The agent reads the dataset two ways. `check_applicability` queries it
-directly with GROQ for the structured part: which documents cover a model year
-and trim, and which contradictions touch them. Sanity Context distills the same
-documents into a Knowledge Base the agent reads over MCP for the wording.
-Setting it up is done in Sanity, not in code.
+## Usage
 
-1. In [sanity.io/manage](https://www.sanity.io/manage), open the
-   organization, go to **Labs**, and turn on Context and then Knowledge Bases.
-2. In the dashboard, open **Context**, create a Knowledge Base, and give it
-   this purpose:
+The demo car is a 2021 Honda CR-V EX. Change the tokens in the header for the
+rest.
 
-   ```
-   Answer questions from Honda CR-V owners and technicians about unexpected automatic emergency braking (Honda's Collision Mitigation Braking System, CMBS) on 2017 to 2022 models: whether a fix exists for their car, which bulletin version is current, and what NHTSA's investigation covers.
-   Lead with: Honda service bulletins and how their versions differ, NHTSA investigations and their scope by model year, which model years and trims each remedy covers, and where sources disagree about the cause.
-   Leave out: warning lights and radar faults that are not unexpected braking, such as cold-weather radar blockage, other vehicle systems, and anything beyond what an owner complaint itself reports.
-   Report what each source states and who said it. Do not infer why NHTSA or Honda took an action unless a source says so.
-   ```
+| Vehicle | Ask | What it demonstrates |
+|---|---|---|
+| 2021 CR-V EX | My CR-V brakes hard on its own with nothing ahead. The dealer says that's normal. Is there a fix? | a coverage gap, already settled by review |
+| 2018 CR-V LX | Does Service Bulletin 26-091 apply to my car? | a trim exclusion |
+| 2018 CR-V EX | Honda and NHTSA disagree about what causes the braking. Which applies to my car? | an open contradiction, and a proposal |
+| 2018 CR-V EX | Is the software update free, and how long does it take? | a plain answer from the owner letter |
+| 1994 Civic del Sol | Are there any recalls for this car? | no sources, and it says so |
 
-   The last line was added after a build stated a reason NHTSA opened its
-   investigation that no source gives.
-3. Add the dataset as a source with the types `tsb` and `claim`, and unfold
-   the claim's `source` reference so each claim carries its document's id.
-   `contradiction` is left out on purpose, so the Knowledge Base has to find
-   conflicts in the sources on its own instead of reading ours.
-4. Build the entries, then work through **Issues**. Resolutions are kept and
-   applied to every later build.
-5. Create an MCP endpoint that serves the Knowledge Base, and put its URL in
-   `.env.local` as `SANITY_CONTEXT_MCP_URL`.
-6. In the organization's **API** settings, create a token with the Context
-   Viewer role only, and put it in `.env.local` as
-   `SANITY_ORGANIZATION_TOKEN`. A project token is refused with
-   `contextGrantRequired`.
+Keyboard: `/` focuses the question, `Ctrl K` or `Cmd K` jumps to the vehicle and
+selects the year, Enter applies it, Escape abandons an edit or stops an answer
+in progress.
 
-The first builds raised four issues, all real. NHTSA's summary of bulletin
-A18-006 writes "OTC" and "MIO" where the codes and display are a DTC and the
-MID, and two entries merged NHTSA's complaint counts with its per-vehicle
-totals (31 crashes alleged in complaints against 47 across all reports, 50
-injuries against 93). Each was resolved in favor of the reading the source
-supports. None of our curated claims conflicted, since each one says who made
-the statement it records.
+Scripts:
 
-## Decisions
+```bash
+npm run dev            # dev server
+npm run build          # production build
+npm run lint           # eslint
+npm run import:nhtsa   # refresh source documents from NHTSA
+npm run seed           # rewrite claims and contradictions, keeps review status
+```
 
-When sources disagree, the agent can propose how the disagreement resolves,
-but it cannot settle it. Its `record_decision` tool writes a proposal, and a
-person reviews it in the Studio under **Decisions → Awaiting review**.
+Each question is a live model call, so the hosted demo stops answering when the
+API balance behind it runs out.
 
-- **Approve** marks the decision approved and its contradiction resolved in one
-  transaction. From then on `check_applicability` returns it as settled, and
-  the agent leads with that answer instead of reopening the question.
-- **Reject** leaves the contradiction open.
-- While a proposal waits, the agent sees it and does not propose the same thing
-  again. The tool also refuses a claim that is not one of the contradiction's
-  two, and a contradiction that is already settled.
+## How it works
 
-The review step exists because the app may be public. Without it, anyone
-chatting with the agent could settle a question for everyone who asks after
-them. Rerunning `npm run seed` updates contradictions but keeps the status a
-review gave them.
+```
+question ─→ agent loop (Claude, AI SDK)
+              ├─ initial_context / knowledge_base_read  → Sanity Context MCP
+              ├─ check_applicability                    → GROQ over the dataset
+              └─ record_decision                        → writes a proposal
+            ↓
+         answer ─→ citation check, quote check ─→ chips, flags, conflict block
+```
 
-## Status
+Four content types carry the work: `tsb` for a source document, `claim` for one
+statement with the words it rests on, `contradiction` for two claims that
+disagree, and `decision` for a resolution awaiting review. The Knowledge Base
+gives the agent the wording. GROQ gives it the structure: which model years a
+document covers, which trims it leaves out, and what is still unsettled.
 
-Under construction. The UI and example questions land as the build progresses.
+Further reading: [the data](docs/data.md) ·
+[the Knowledge Base](docs/knowledge-base.md) ·
+[decision review](docs/decisions.md) · [deploying](docs/deploying.md)
+
+## Contributing
+
+Issues and pull requests are welcome at
+[github.com/pyarchana/tsb-oracle](https://github.com/pyarchana/tsb-oracle).
+
+Before opening a pull request:
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
+
+Commits stay small and say why the change was made, not what the diff already
+shows.
+
+## License
+
+[MIT](LICENSE).
+
+The records are NHTSA's public data. Honda's bulletins remain Honda's
+copyright, so documents link to the copy NHTSA hosts rather than reproducing
+it. This is not repair advice: whether a bulletin applies to a particular car is
+decided by a dealer's VIN check.
+
+## Acknowledgements
+
+- [NHTSA](https://www.nhtsa.gov) for publishing the records this is built on
+- [Sanity](https://www.sanity.io) for the content backend and Context
+- The owners who filed the complaints that make the pattern visible
+
+---
+
+Built by [Archana](https://github.com/pyarchana) ·
+Co-author of this project: Claude Opus 5, via Claude Code
