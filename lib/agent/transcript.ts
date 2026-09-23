@@ -10,16 +10,25 @@ export interface ToolStep {
 
 /**
  * The answer is the text after the agent's last tool call. Text from earlier
- * steps is the agent narrating its own lookups, which the tool trail already
- * shows.
+ * steps is usually the agent narrating its own lookups, which the tool trail
+ * already shows.
+ *
+ * Unless there is none. An agent that answers in full and then records a
+ * decision ends its turn on a tool call, and dropping everything before it
+ * would leave the reader with nothing, so in that case all of the text stands.
  */
 export function answerText(message: UIMessage): string {
   const lastTool = message.parts.findLastIndex((part) => isToolUIPart(part))
-  return message.parts
-    .slice(lastTool + 1)
+  const final = textOf(message.parts.slice(lastTool + 1))
+  return final === '' ? textOf(message.parts) : final
+}
+
+function textOf(parts: UIMessage['parts']): string {
+  return parts
     .filter(isTextUIPart)
     .map((part) => part.text)
     .join('\n\n')
+    .trim()
 }
 
 export function toolSteps(message: UIMessage): ToolStep[] {
