@@ -15,7 +15,11 @@ export function SourceRail({records, error, cited, vehicle}: SourceRailProps) {
   if (error) {
     return (
       <aside className={styles.rail}>
-        <p className={styles.note}>The sources could not be loaded: {error}</p>
+        <p className={styles.note}>
+          The sources could not be loaded. A browser reads them straight from the dataset, so a new
+          address has to be added to the project&apos;s CORS origins before it can.
+        </p>
+        <p className={styles.note}>{error}</p>
       </aside>
     )
   }

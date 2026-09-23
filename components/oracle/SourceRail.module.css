@@ -32,6 +32,8 @@
   line-height: 1.4;
   color: var(--paper-faint);
   margin: 0;
+  /* A failure here reports the URL it could not reach, which has no spaces. */
+  overflow-wrap: anywhere;
 }
 
 .list {
