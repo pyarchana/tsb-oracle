@@ -141,6 +141,7 @@ Scripts:
 npm run dev            # dev server
 npm run build          # production build
 npm run lint           # eslint
+npm test               # unit tests for the checking layer
 npm run import:nhtsa   # refresh source documents from NHTSA
 npm run seed           # rewrite claims and contradictions, keeps review status
 ```
@@ -179,8 +180,13 @@ Before opening a pull request:
 ```bash
 npx tsc --noEmit
 npm run lint
+npm test
 npm run build
 ```
+
+The tests cover the checking layer: citation verification, quote matching,
+answer parsing, and the VIN and trim rules. They run on Node's own test runner,
+so there is nothing extra to install.
 
 Commits stay small and say why the change was made, not what the diff already
 shows.
