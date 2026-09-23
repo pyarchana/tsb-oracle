@@ -1,7 +1,7 @@
 import type {UIMessage} from 'ai'
 import {parseAnswer} from '@/lib/agent/answer'
 import {classifyCitations} from '@/lib/agent/citations'
-import {answerText, retrievedText, toolSteps} from '@/lib/agent/transcript'
+import {answerText, toolSteps} from '@/lib/agent/transcript'
 import type {SourceRow} from '@/lib/sanity/queries'
 import {Answer} from './Answer'
 import {Conflict} from './Conflict'
@@ -12,6 +12,13 @@ import styles from './Turn.module.css'
 interface TurnProps {
   question: string
   reply?: UIMessage
+  /**
+   * Everything the agent has retrieved in the conversation up to and including
+   * this turn. A later turn quotes wording it read earlier without reading it
+   * again, and that quote is no less checked for having been fetched two
+   * questions ago.
+   */
+  retrieved: string
   /** This turn is the one the agent is still working on. */
   working: boolean
   /** The agent is working on some turn, so nothing new can be asked yet. */
@@ -28,10 +35,19 @@ interface TurnProps {
  * actually raised it. The block reads the latest records rather than what the
  * agent saw, so a proposal made in a later turn shows up here too.
  */
-export function Turn({question, reply, working, busy, records, sources, make, onAsk}: TurnProps) {
+export function Turn({
+  question,
+  reply,
+  retrieved,
+  working,
+  busy,
+  records,
+  sources,
+  make,
+  onAsk,
+}: TurnProps) {
   const steps = reply ? toolSteps(reply) : []
   const answer = reply ? answerText(reply) : ''
-  const retrieved = reply ? retrievedText(reply) : ''
   const citations = classifyCitations(answer, [retrieved])
   const cited = new Set(citations.map((c) => c.id))
   const verified = new Set(citations.filter((c) => c.verified).map((c) => c.id))

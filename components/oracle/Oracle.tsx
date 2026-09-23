@@ -5,7 +5,7 @@ import {DefaultChatTransport, isTextUIPart, type UIMessage} from 'ai'
 import {useEffect, useRef, useState, type FormEvent, type RefObject} from 'react'
 import {extractCitationIds} from '@/lib/agent/citations'
 import type {Vehicle} from '@/lib/agent/systemPrompt'
-import {answerText} from '@/lib/agent/transcript'
+import {answerText, retrievedText} from '@/lib/agent/transcript'
 import type {SourceRow} from '@/lib/sanity/queries'
 import {useVehicleRecords} from './records'
 import {SourceRail} from './SourceRail'
@@ -138,11 +138,12 @@ export function Oracle() {
           </div>
         )}
 
-        {turns.map(({question, reply}, i) => (
+        {turns.map(({question, reply, retrieved}, i) => (
           <Turn
             key={question.id}
             question={question.parts.filter(isTextUIPart).map((p) => p.text).join('')}
             reply={reply}
+            retrieved={retrieved}
             working={busy && i === turns.length - 1}
             busy={busy}
             records={records}
@@ -219,11 +220,18 @@ function commandKey(): string {
   return /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl '
 }
 
+/**
+ * Questions with their answers, each carrying everything retrieved in the
+ * conversation up to that point, which is what its quotes are checked against.
+ */
 function pairTurns(messages: UIMessage[]) {
+  let retrieved = ''
   return messages.flatMap((message, i) => {
     if (message.role !== 'user') return []
     const next = messages[i + 1]
-    return [{question: message, reply: next?.role === 'assistant' ? next : undefined}]
+    const reply = next?.role === 'assistant' ? next : undefined
+    if (reply) retrieved = `${retrieved}\n${retrievedText(reply)}`
+    return [{question: message, reply, retrieved}]
   })
 }
 
