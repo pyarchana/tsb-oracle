@@ -45,6 +45,23 @@
   color: var(--signal);
 }
 
+.kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--paper-faint);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+.header .kbd {
+  margin-left: auto;
+}
+.stop .kbd {
+  border: 0;
+  padding: 0 0 0 4px;
+}
+
 .token {
   display: inline-flex;
   align-items: baseline;

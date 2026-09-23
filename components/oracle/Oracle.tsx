@@ -2,7 +2,7 @@
 
 import {useChat} from '@ai-sdk/react'
 import {DefaultChatTransport, isTextUIPart, type UIMessage} from 'ai'
-import {useEffect, useRef, useState, type FormEvent} from 'react'
+import {useEffect, useRef, useState, type FormEvent, type RefObject} from 'react'
 import {extractCitationIds} from '@/lib/agent/citations'
 import type {Vehicle} from '@/lib/agent/systemPrompt'
 import {answerText} from '@/lib/agent/transcript'
@@ -40,6 +40,37 @@ export function Oracle() {
   })
   const busy = status === 'submitted' || status === 'streaming'
 
+  /**
+   * Keyboard first: slash goes to the question, the command shortcut goes to
+   * the vehicle, and Escape backs out of whatever is happening, which while the
+   * agent is working means stopping it.
+   */
+  const question = useRef<HTMLInputElement>(null)
+  const firstVehicleField = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
+
+      if (event.key === 'Escape') {
+        if (busy) void stop()
+        if (typing) target.blur()
+        return
+      }
+      if (typing || event.altKey) return
+
+      if (event.key === '/') {
+        event.preventDefault()
+        question.current?.focus()
+      } else if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        firstVehicleField.current?.select()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [busy, stop])
+
   // Follow the answer as it streams, unless the reader has scrolled up.
   const thread = useRef<HTMLElement>(null)
   const stick = useRef(true)
@@ -73,7 +104,15 @@ export function Oracle() {
         <div className={styles.wordmark}>
           TSB <span>Oracle</span>
         </div>
-        <VehicleBar vehicle={vehicle} onChange={changeVehicle} />
+        <VehicleBar
+          vehicle={vehicle}
+          onChange={changeVehicle}
+          firstField={firstVehicleField}
+          onDone={() => question.current?.focus()}
+        />
+        <span className={styles.kbd} suppressHydrationWarning>
+          {commandKey()}K
+        </span>
       </header>
 
       <main
@@ -122,7 +161,7 @@ export function Oracle() {
           </p>
         )}
 
-        <Composer busy={busy} onAsk={ask} onStop={() => void stop()} />
+        <Composer busy={busy} onAsk={ask} onStop={() => void stop()} inputRef={question} />
       </main>
 
       <SourceRail records={records} error={recordsError} cited={cited} vehicle={vehicle} />
@@ -130,7 +169,14 @@ export function Oracle() {
   )
 }
 
-function Composer({busy, onAsk, onStop}: {busy: boolean; onAsk: (text: string) => void; onStop: () => void}) {
+interface ComposerProps {
+  busy: boolean
+  onAsk: (text: string) => void
+  onStop: () => void
+  inputRef: RefObject<HTMLInputElement | null>
+}
+
+function Composer({busy, onAsk, onStop, inputRef}: ComposerProps) {
   const [text, setText] = useState('')
 
   function submit(event: FormEvent) {
@@ -147,20 +193,30 @@ function Composer({busy, onAsk, onStop}: {busy: boolean; onAsk: (text: string) =
           &rsaquo;
         </span>
         <input
+          ref={inputRef}
           className={styles.input}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Ask about this vehicle"
           aria-label="Ask about this vehicle"
+          aria-keyshortcuts="/"
         />
-        {busy && (
+        {busy ? (
           <button type="button" className={styles.stop} onClick={onStop}>
-            Stop
+            Stop <span className={styles.kbd}>esc</span>
           </button>
+        ) : (
+          <span className={styles.kbd}>/</span>
         )}
       </div>
     </form>
   )
+}
+
+/** The symbol on the key people actually press, which differs by platform. */
+function commandKey(): string {
+  if (typeof navigator === 'undefined') return 'Ctrl '
+  return /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl '
 }
 
 function pairTurns(messages: UIMessage[]) {
