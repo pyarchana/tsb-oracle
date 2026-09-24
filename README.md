@@ -62,7 +62,8 @@ A proposal from the agent, approved by a person in the Studio:
 - **Two checks on every answer.** A citation the agent never retrieved is
   flagged amber. A quote is verified against the dataset's copy of the document
   it is attributed to, which caught version 1 wording cited to version 2 during
-  testing.
+  testing. Documents carry a fingerprint of their own words, so a quote whose
+  source was reissued reads differently from a quote nobody can source.
 - **Contradictions shown, not hidden.** Both claims, their dates, and a plain
   explanation of why they conflict.
 - **Proposals, not decrees.** The agent proposes a resolution; a person

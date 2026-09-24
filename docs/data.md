@@ -27,6 +27,26 @@ Every title starts with the NHTSA id, which is what makes a citation checkable:
 Sanity's internal ones, because the id has to survive being read out to a
 dealer.
 
+## Which version a quote came from
+
+A citation names a document. It does not name the version of that document the
+words were taken from, and NHTSA reissues a summary under the same id.
+
+So the import fingerprints each document's own words into `contentHash`, and
+the seed stamps every claim with the `sourceHash` it was extracted against. The
+fingerprint ignores whitespace, so reflowing a paragraph is not a revision, and
+it leaves out anything derived from the moment of fetching, such as the line
+saying an investigation was still open when we looked.
+
+Two things follow. The import reports which documents changed wording since it
+last ran, rather than replacing them in silence. And the app can tell a quote
+nobody can source from a quote whose source was replaced: words missing from a
+document whose claims predate its current text are flagged as a reissue, not as
+a misquote.
+
+Rerun the seed after an import that reports changes, so the claims record the
+text they now rest on.
+
 ## Caveats
 
 This is not repair advice. The records are as of the date each document was
