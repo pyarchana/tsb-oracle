@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
+import type {CitedDocument} from '@/lib/agent/citations'
 import type {Vehicle} from '@/lib/agent/systemPrompt'
 import {lookupSources, lookupSourceTexts, lookupVehicle} from '@/lib/sanity/lookup'
 import type {ContradictionRow, SourceRow} from '@/lib/sanity/queries'
@@ -13,8 +14,8 @@ export interface Records {
    */
   related: SourceRow[]
   contradictions: ContradictionRow[]
-  /** The text of every document cited so far, for checking quotes against. */
-  texts: Map<string, string | null>
+  /** Every document cited so far, for checking quotes against. */
+  texts: Map<string, CitedDocument | null>
 }
 
 /**

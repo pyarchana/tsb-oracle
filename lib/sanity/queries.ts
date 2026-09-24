@@ -50,7 +50,9 @@ export const SOURCE_TEXTS = defineQuery(`
     tsbNumber,
     title,
     "body": pt::text(body),
-    "quotes": *[_type == "claim" && source._ref == ^._id && defined(quote)].quote
+    "quotes": *[_type == "claim" && source._ref == ^._id && defined(quote)].quote,
+    contentHash,
+    "claimHashes": *[_type == "claim" && source._ref == ^._id && defined(sourceHash)].sourceHash
   }
 `)
 
@@ -135,6 +137,8 @@ export interface SourceTextRow {
   title: string
   body: string | null
   quotes: string[]
+  contentHash: string | null
+  claimHashes: string[]
 }
 
 export interface ClaimRow {

@@ -1,5 +1,10 @@
 import type {Segment} from '@/lib/agent/answer'
-import {quoteAppearsIn} from '@/lib/agent/citations'
+import {
+  checkQuote,
+  quoteAppearsIn,
+  type CitedDocument,
+  type QuoteVerdict,
+} from '@/lib/agent/citations'
 import type {SourceRow} from '@/lib/sanity/queries'
 import styles from './Turn.module.css'
 
@@ -11,8 +16,8 @@ interface AnswerProps {
   retrieved: string
   /** The question this answers. */
   question: string
-  /** Cited documents' text from the dataset, absent until it has loaded. */
-  texts?: Map<string, string | null>
+  /** Cited documents from the dataset, absent until they have loaded. */
+  texts?: Map<string, CitedDocument | null>
   sources: Map<string, SourceRow>
 }
 
@@ -38,7 +43,7 @@ export function Answer({paragraphs, verified, retrieved, question, texts, source
                 key={j}
                 text={segment.text}
                 citedIds={segment.citedIds}
-                verified={quoteHolds(segment.text, segment.citedIds, retrieved, question, texts)}
+                verdict={quoteHolds(segment.text, segment.citedIds, retrieved, question, texts)}
               />
             )
           })}
@@ -86,21 +91,37 @@ function quoteHolds(
   citedIds: string[],
   retrieved: string,
   question: string,
-  texts?: Map<string, string | null>,
-): boolean {
-  if (citedIds.length === 0) return quoteAppearsIn(quote, [retrieved, question])
-  if (!texts || !citedIds.every((id) => texts.has(id))) return true
-  return quoteAppearsIn(
+  texts?: Map<string, CitedDocument | null>,
+): QuoteVerdict {
+  if (citedIds.length === 0) {
+    return quoteAppearsIn(quote, [retrieved, question]) ? 'holds' : 'not-in-document'
+  }
+  if (!texts || !citedIds.every((id) => texts.has(id))) return 'holds'
+  return checkQuote(
     quote,
-    citedIds.flatMap((id) => texts.get(id) ?? []),
+    citedIds.map((id) => texts.get(id) ?? null),
   )
 }
 
-function Quote({text, citedIds, verified}: {text: string; citedIds: string[]; verified: boolean}) {
-  if (verified) return <>{`\u201c${text}\u201d`}</>
+function Quote({
+  text,
+  citedIds,
+  verdict,
+}: {
+  text: string
+  citedIds: string[]
+  verdict: QuoteVerdict
+}) {
+  if (verdict === 'holds') return <>{`\u201c${text}\u201d`}</>
+
   const where = citedIds.length > 0 ? citedIds.join(' or ') : 'anything the agent retrieved'
+  const title =
+    verdict === 'document-reissued'
+      ? `${where} has been reissued since these words were recorded, so they may quote a version the dataset no longer holds`
+      : `These words are not in ${where}`
+
   return (
-    <span className={styles.unverifiedQuote} title={`These words are not in ${where}`}>
+    <span className={styles.unverifiedQuote} title={title}>
       {`\u201c${text}\u201d`}
     </span>
   )

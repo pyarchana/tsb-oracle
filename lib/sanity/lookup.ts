@@ -1,3 +1,4 @@
+import type {CitedDocument} from '@/lib/agent/citations'
 import {sanityFreshClient} from './client'
 import {
   CONTRADICTIONS_FOR_SOURCES,
@@ -54,13 +55,23 @@ export async function lookupSources(numbers: string[]): Promise<SourceRow[]> {
  * Each requested document's text, keyed by NHTSA id. An id the dataset does not
  * hold maps to null, so a caller can tell a document with no match from one
  * that has not been looked up yet.
+ *
+ * `reissued` says the document's words have changed since its claims were
+ * taken from it, which is the difference between a quote nobody can source and
+ * a quote whose source was replaced.
  */
-export async function lookupSourceTexts(numbers: string[]): Promise<Map<string, string | null>> {
-  const texts = new Map<string, string | null>(numbers.map((n) => [n, null]))
+export async function lookupSourceTexts(
+  numbers: string[],
+): Promise<Map<string, CitedDocument | null>> {
+  const texts = new Map<string, CitedDocument | null>(numbers.map((n) => [n, null]))
   if (numbers.length === 0) return texts
   const rows = await sanityFreshClient.fetch<SourceTextRow[]>(SOURCE_TEXTS, {numbers})
   for (const row of rows) {
-    texts.set(row.tsbNumber, [row.title, row.body, ...row.quotes].filter(Boolean).join('\n'))
+    texts.set(row.tsbNumber, {
+      text: [row.title, row.body, ...row.quotes].filter(Boolean).join('\n'),
+      reissued:
+        row.contentHash !== null && row.claimHashes.some((hash) => hash !== row.contentHash),
+    })
   }
   return texts
 }

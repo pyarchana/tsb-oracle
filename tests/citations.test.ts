@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import {describe, test} from 'node:test'
-import {classifyCitations, extractCitationIds, quoteAppearsIn} from '../lib/agent/citations'
+import {contentHash} from '../lib/content-hash'
+import {
+  checkQuote,
+  classifyCitations,
+  extractCitationIds,
+  quoteAppearsIn,
+} from '../lib/agent/citations'
 
 describe('extractCitationIds', () => {
   test('returns each id once, in the order it first appears', () => {
@@ -79,5 +85,47 @@ deceleration may occur."`
 
   test('holds when the quote has no words left to check', () => {
     assert.equal(quoteAppearsIn('...', [document]), true)
+  })
+})
+
+describe('checkQuote', () => {
+  const held = {text: 'Due to software programming issues, deceleration may occur.', reissued: false}
+  const reissued = {text: 'The update changes when the system decelerates.', reissued: true}
+
+  test('holds when the words are in a cited document', () => {
+    assert.equal(checkQuote('software programming issues', [held]), 'holds')
+  })
+
+  test('holds when one of several cited documents has the words', () => {
+    assert.equal(checkQuote('software programming issues', [reissued, held]), 'holds')
+  })
+
+  test('separates a misquote from a document that has been reissued', () => {
+    assert.equal(checkQuote('a defect in the master cylinder', [held]), 'not-in-document')
+    assert.equal(checkQuote('a defect in the master cylinder', [reissued]), 'document-reissued')
+  })
+
+  test('treats a document the dataset does not hold as no evidence either way', () => {
+    assert.equal(checkQuote('anything at all', [null]), 'not-in-document')
+  })
+})
+
+describe('contentHash', () => {
+  const body = 'Due to software programming issues of the ADAS, deceleration may occur.'
+
+  test('is stable for the same words', () => {
+    assert.equal(contentHash(body), contentHash(body))
+  })
+
+  test('ignores reflowed whitespace, which is not a revision', () => {
+    assert.equal(contentHash(body), contentHash(`  Due to software programming\nissues of the ADAS,\n\ndeceleration may occur.  `))
+  })
+
+  test('changes when a word changes', () => {
+    assert.notEqual(contentHash(body), contentHash(body.replace('may', 'will')))
+  })
+
+  test('is short enough to read in the Studio', () => {
+    assert.equal(contentHash(body).length, 16)
   })
 })

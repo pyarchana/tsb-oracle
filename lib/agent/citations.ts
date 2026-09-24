@@ -50,6 +50,30 @@ export function classifyCitations(answer: string, retrieved: string[]): Citation
  *
  * An ellipsis marks words left out, so each piece is looked for on its own.
  */
+/** A document as the dataset holds it now, with whether it has been reissued since its claims were taken. */
+export interface CitedDocument {
+  text: string
+  reissued: boolean
+}
+
+export type QuoteVerdict = 'holds' | 'not-in-document' | 'document-reissued'
+
+/**
+ * Checks a quote against the documents it is cited to.
+ *
+ * Words that are nowhere in a cited document usually mean the quote is wrong.
+ * They mean something else when that document has been reissued since its
+ * claims were extracted: the words may be a faithful quote of a version the
+ * dataset no longer holds. Saying "those words are not in EA24-002" would then
+ * be true of today's text and misleading about the answer, so the two verdicts
+ * are kept apart.
+ */
+export function checkQuote(quote: string, cited: (CitedDocument | null)[]): QuoteVerdict {
+  const documents = cited.filter((doc) => doc !== null)
+  if (quoteAppearsIn(quote, documents.map((doc) => doc.text))) return 'holds'
+  return documents.some((doc) => doc.reissued) ? 'document-reissued' : 'not-in-document'
+}
+
 export function quoteAppearsIn(quote: string, texts: string[]): boolean {
   const pieces = normalize(quote)
     .split(/\.\.\.|\u2026/)
