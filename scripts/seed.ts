@@ -72,6 +72,7 @@ interface ClaimDoc {
   appliesToYears: number[]
   confidence: 'verified' | 'reported' | 'disputed'
   extractedAt: string
+  sourceHash?: string
   managedBy: 'seed'
 }
 
@@ -344,11 +345,24 @@ async function clean() {
 
 async function seed() {
   const wanted = [...new Set([...overlays.map((o) => o._id), ...claims.map((c) => c.source._ref)])]
-  const found: string[] = await client.fetch(`*[_id in $wanted]._id`, {wanted})
-  const missing = wanted.filter((id) => !found.includes(id))
+  const sources: {_id: string; contentHash: string | null}[] = await client.fetch(
+    `*[_id in $wanted]{_id, contentHash}`,
+    {wanted},
+  )
+  const missing = wanted.filter((id) => !sources.some((s) => s._id === id))
   if (missing.length > 0) {
     throw new Error(`Missing imported sources: ${missing.join(', ')}. Run npm run import:nhtsa first.`)
   }
+
+  // Each quote below was read off the text the import stored, so each claim
+  // records the fingerprint of that text. When a source is reissued under the
+  // same id, the two stop matching, and a quote can be told apart from words
+  // the document never held.
+  const hashes = new Map(sources.map((s) => [s._id, s.contentHash]))
+  const stamped = claims.map((claim) => ({
+    ...claim,
+    sourceHash: hashes.get(claim.source._ref) ?? undefined,
+  }))
 
   // Claims before contradictions, so references resolve in order. One
   // transaction, so a failure leaves nothing half written.
@@ -358,7 +372,7 @@ async function seed() {
   // generic against the first element then rejects every other type.
   const tx = client.transaction()
   for (const {_id, set} of overlays) tx.patch(_id, (patch) => patch.set(set))
-  for (const doc of claims) tx.createOrReplace(doc)
+  for (const doc of stamped) tx.createOrReplace(doc)
   // A contradiction's status belongs to the review, not the seed: approving a
   // decision marks it resolved, and a reseed must not quietly reopen it.
   for (const {_id, _type, status, ...fields} of contradictions) {

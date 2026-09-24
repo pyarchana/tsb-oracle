@@ -1,5 +1,6 @@
 import {createClient} from '@sanity/client'
 import {loadEnvConfig} from '@next/env'
+import {contentHash} from '../lib/content-hash'
 
 /**
  * Imports NHTSA's public record on one safety system for one vehicle line:
@@ -205,6 +206,7 @@ interface Imported {
     sourceType: SourceType
     status?: 'active' | 'closed'
     body: Block[]
+    contentHash: string
     nhtsaIds: string[]
     retrievedAt: string
     managedBy: 'nhtsa-import'
@@ -212,6 +214,16 @@ interface Imported {
 }
 
 const retrievedAt = new Date().toISOString()
+
+/**
+ * Fingerprints the record's own words, not the paragraphs this script composes
+ * around them. The line saying an investigation was still open when we fetched
+ * it changes on every run, and a hash that moves every run would report a
+ * revision that never happened.
+ */
+function fingerprint(paragraphs: (string | null | undefined)[]): string {
+  return contentHash(paragraphs.filter(Boolean).join('\n'))
+}
 
 function body(id: string, paragraphs: string[]): Block[] {
   return paragraphs.map((text, i) => ({
@@ -325,6 +337,7 @@ async function communications(seen: Awaited<ReturnType<typeof fetchVehicleYears>
         sourceUrl: pdfs[0]?.url ?? last.associatedDocuments,
         sourceType,
         body: body(`mc${first.nhtsaIdNumber}`, paragraphs),
+        contentHash: fingerprint(paragraphs),
         nhtsaIds: records.map((r) => String(r.nhtsaIdNumber)),
         retrievedAt,
         managedBy: 'nhtsa-import',
@@ -365,6 +378,9 @@ async function investigations(seen: Awaited<ReturnType<typeof fetchVehicleYears>
             ? `Opened ${day(record.dateOpened)}, closed ${day(record.dateClosed)}.`
             : `Opened ${day(record.dateOpened)}. Still open when retrieved on ${day(retrievedAt)}.`,
         ]),
+        // Closing an investigation is a change in the record. Fetching it again
+        // on a Tuesday is not.
+        contentHash: fingerprint([...clean(record.summary), record.dateClosed ?? 'open']),
         nhtsaIds: [record.nhtsaActionNumber],
         retrievedAt,
         managedBy: 'nhtsa-import',
@@ -395,6 +411,7 @@ function recalls(seen: Awaited<ReturnType<typeof fetchVehicleYears>>['recalls'])
           record.consequence,
           record.correctiveAction,
         ]),
+        contentHash: fingerprint([record.summary, record.consequence, record.correctiveAction]),
         nhtsaIds: [record.nhtsaCampaignNumber],
         retrievedAt,
         managedBy: 'nhtsa-import',
@@ -432,6 +449,7 @@ function complaints(seen: Awaited<ReturnType<typeof fetchVehicleYears>>['complai
         sourceUrl: `${NHTSA}/complaints/odinumber?odinumber=${odi}`,
         sourceType: 'complaint',
         body: body(`cmp${odi}`, [...clean(record.description), flags]),
+        contentHash: fingerprint([...clean(record.description), flags]),
         nhtsaIds: [String(odi)],
         retrievedAt,
         managedBy: 'nhtsa-import',
@@ -453,14 +471,26 @@ async function run() {
     complaints: complaints(seen.complaints),
   }
 
+  const incoming = Object.values(groups).flat()
+
+  // A reissued document keeps its id, so without this the new wording would
+  // replace the old one with nothing said about it, and every quote taken from
+  // the old text would quietly be a quote from a version nobody holds.
+  const stored: {_id: string; contentHash: string | null}[] = await client.fetch(
+    `*[_type == "tsb" && _id in $ids]{_id, contentHash}`,
+    {ids: incoming.map((d) => d._id)},
+  )
+  const before = new Map(stored.map((doc) => [doc._id, doc.contentHash]))
+  const revised = incoming.filter(
+    ({_id, facts}) => before.get(_id) && before.get(_id) !== facts.contentHash,
+  )
+
   // createIfNotExists sets a starting status once; the patch then overwrites
   // the fields this script owns, title included.
   const tx = client.transaction()
-  for (const docs of Object.values(groups)) {
-    for (const {_id, title, facts} of docs) {
-      tx.createIfNotExists({_id, _type: 'tsb', title, status: 'active'})
-      tx.patch(_id, (patch) => patch.set({...facts, title}))
-    }
+  for (const {_id, title, facts} of incoming) {
+    tx.createIfNotExists({_id, _type: 'tsb', title, status: 'active'})
+    tx.patch(_id, (patch) => patch.set({...facts, title}))
   }
   await tx.commit()
 
@@ -469,6 +499,12 @@ async function run() {
   }
   const records = groups.communications.reduce((n, d) => n + d.facts.nhtsaIds.length, 0)
   console.log(`\nThe ${groups.communications.length} communications merge ${records} NHTSA records.`)
+
+  if (revised.length > 0) {
+    console.log(`\n${revised.length} document(s) changed wording since the last import:`)
+    for (const {title} of revised) console.log(`  ${title}`)
+    console.log('Rerun the seed so its claims record the text they were taken from.')
+  }
   console.log(`Project ${projectId}, dataset ${dataset}`)
 }
 

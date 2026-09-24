@@ -63,6 +63,14 @@ export const claim = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({name: 'extractedAt', title: 'Extracted at', type: 'datetime'}),
+    defineField({
+      name: 'sourceHash',
+      title: 'Source hash',
+      type: 'string',
+      readOnly: true,
+      description:
+        "The source document's contentHash when this quote was taken from it. If the two no longer match, the document has been reissued since, and the quote belongs to a version that is no longer stored.",
+    }),
     managedByField,
   ],
   preview: {

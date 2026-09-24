@@ -97,6 +97,14 @@ export const tsb = defineType({
         'Every NHTSA record this document was built from. Honda resends the same dealer message many times and each resend gets its own id.',
     }),
     defineField({name: 'retrievedAt', title: 'Retrieved at', type: 'datetime', readOnly: true}),
+    defineField({
+      name: 'contentHash',
+      title: 'Content hash',
+      type: 'string',
+      readOnly: true,
+      description:
+        "A fingerprint of the document's own words, written by the import. Claims record the value they were extracted against, so a reissued document can be told from a misquoted one.",
+    }),
     managedByField,
   ],
   preview: {
