@@ -49,7 +49,6 @@ A proposal from the agent, approved by a person in the Studio:
 - [Installation](#installation)
 - [Usage](#usage)
 - [How it works](#how-it-works)
-- [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 
@@ -170,27 +169,6 @@ document covers, which trims it leaves out, and what is still unsettled.
 Further reading: [the data](docs/data.md) ·
 [the Knowledge Base](docs/knowledge-base.md) ·
 [decision review](docs/decisions.md) · [deploying](docs/deploying.md)
-
-## Contributing
-
-Issues and pull requests are welcome at
-[github.com/pyarchana/tsb-oracle](https://github.com/pyarchana/tsb-oracle).
-
-Before opening a pull request:
-
-```bash
-npx tsc --noEmit
-npm run lint
-npm test
-npm run build
-```
-
-The tests cover the checking layer: citation verification, quote matching,
-answer parsing, and the VIN and trim rules. They run on Node's own test runner,
-so there is nothing extra to install.
-
-Commits stay small and say why the change was made, not what the diff already
-shows.
 
 ## License
 
