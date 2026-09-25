@@ -30,6 +30,12 @@ unexpected automatic emergency braking on the 2017 to 2022 Honda CR-V.
 
 ## Visuals
 
+One question, start to finish. A real run, sped up: the agent reads the
+Knowledge Base, checks the vehicle, answers with citations, and ends on the
+contradiction it found.
+
+![The app answering a question about a 2021 CR-V](docs/screenshots/demo.gif)
+
 An answer, its citations, and the contradiction it raised:
 
 ![An answer citing its sources, with the contradiction laid out below it](docs/screenshots/app-open-contradiction.png)
